@@ -1,0 +1,9 @@
+{
+    "id": "bodega",
+    "name": "Bodega",
+    "module": "plugin",
+    "class": "BodegaPlugin",
+    "order": 8,
+    "icon": "box.svg",
+    "tab_color": "#D2691E"
+}

@@ -1,0 +1,9 @@
+{
+    "name": "Portada",
+    "module": "plugin",
+    "class": "PortadaPlugin",
+    "version": "2.0",
+    "order": 0,
+    "icon": "portada.svg",
+    "tab_color": "#6c7086"
+}

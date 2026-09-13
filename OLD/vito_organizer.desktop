@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Vito Organizer
+Comment=Agenda personal esqueumórfica inspirada en Lotus Organizer
+Exec=vito-organizer
+Icon=vito-organizer
+Terminal=false
+Type=Application
+Categories=Office;ProjectManagement;
+Keywords=agenda;organizer;calendar;notes;inventory;
+StartupNotify=true

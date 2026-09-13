@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- Fondo base (tapa trasera y hojas) -->
+  <rect x="12" y="8" width="40" height="48" rx="4" fill="#E0E0E0"/>
+  
+  <!-- Hojas apiladas efecto 3D -->
+  <rect x="14" y="8" width="38" height="48" rx="4" fill="#F5F5F5"/>
+  <rect x="16" y="8" width="36" height="48" rx="4" fill="#FFFFFF"/>
+  
+  <!-- Tapa frontal (cuero oscuro) -->
+  <rect x="18" y="6" width="32" height="52" rx="3" fill="#313244"/>
+  
+  <!-- Lomo de la agenda -->
+  <rect x="12" y="6" width="10" height="52" rx="3" fill="#181825"/>
+  
+  <!-- Anillas metálicas -->
+  <path d="M 16 14 C 20 14, 20 18, 16 18 M 16 26 C 20 26, 20 30, 16 30 M 16 38 C 20 38, 20 42, 16 42 M 16 50 C 20 50, 20 54, 16 54" fill="none" stroke="#89b4fa" stroke-width="2" stroke-linecap="round"/>
+  
+  <!-- Marca/Cinta marcapáginas -->
+  <path d="M 40 58 L 40 40 L 44 44 L 48 40 L 48 58 Z" fill="#f38ba8"/>
+  
+  <!-- Detalles en la tapa frontal -->
+  <rect x="26" y="16" width="16" height="4" rx="2" fill="#45475a"/>
+  <rect x="26" y="24" width="10" height="2" rx="1" fill="#45475a"/>
+  
+  <!-- Pestañas de sección -->
+  <path d="M 50 14 L 54 14 A 2 2 0 0 1 56 16 L 56 20 A 2 2 0 0 1 54 22 L 50 22 Z" fill="#6c7086"/>
+  <path d="M 50 24 L 54 24 A 2 2 0 0 1 56 26 L 56 30 A 2 2 0 0 1 54 32 L 50 32 Z" fill="#f9e2af"/>
+  <path d="M 50 34 L 54 34 A 2 2 0 0 1 56 36 L 56 40 A 2 2 0 0 1 54 42 L 50 42 Z" fill="#a6e3a1"/>
+</svg>

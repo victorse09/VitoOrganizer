@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none">
+  <!-- Cake (simplified) -->
+  <rect x="2" y="11" width="13" height="4" rx="1" stroke="#E0E0E0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="3" y="15" width="11" height="4" rx="1" stroke="#E0E0E0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Candle -->
+  <rect x="7.5" y="7" width="2" height="4" rx="0.5" stroke="#E0E0E0" stroke-width="1.5" fill="none"/>
+  <!-- Flame -->
+  <path d="M8.5 4 C8.5 4 7.5 5.5 8.5 6.5 C9.5 5.5 8.5 4 8.5 4z" fill="#FFD700" stroke="#FFD700" stroke-width="0.5"/>
+  <!-- Plus sign -->
+  <line x1="19" y1="11" x2="19" y2="19" stroke="#E0E0E0" stroke-width="2" stroke-linecap="round"/>
+  <line x1="15" y1="15" x2="23" y2="15" stroke="#E0E0E0" stroke-width="2" stroke-linecap="round"/>
+</svg>

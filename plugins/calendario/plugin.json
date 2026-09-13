@@ -1,0 +1,9 @@
+{
+    "name": "Calendario",
+    "module": "plugin",
+    "class": "CalendarioPlugin",
+    "version": "2.0",
+    "order": 1,
+    "icon": "calendar.svg",
+    "tab_color": "#f9e2af"
+}

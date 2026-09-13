@@ -1,0 +1,8 @@
+{
+    "name": "Gastos",
+    "module": "plugin",
+    "class": "GastosPlugin",
+    "order": 9,
+    "icon": "wallet.svg",
+    "tab_color": "#4CAF50"
+}

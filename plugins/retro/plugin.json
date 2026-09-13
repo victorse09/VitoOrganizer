@@ -1,0 +1,9 @@
+{
+    "id": "retro",
+    "name": "Retro",
+    "module": "plugin",
+    "class": "RetroPlugin",
+    "order": 7,
+    "icon": "retro.svg",
+    "tab_color": "#FF8C00"
+}

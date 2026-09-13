@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none">
+  <!-- 7 narrow vertical rectangles side by side -->
+  <rect x="1.5" y="3" width="2.5" height="18" rx="0.5" stroke="#E0E0E0" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="4.5" y="3" width="2.5" height="18" rx="0.5" stroke="#E0E0E0" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="7.5" y="3" width="2.5" height="18" rx="0.5" stroke="#E0E0E0" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="10.5" y="3" width="2.5" height="18" rx="0.5" stroke="#E0E0E0" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="13.5" y="3" width="2.5" height="18" rx="0.5" stroke="#E0E0E0" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="16.5" y="3" width="2.5" height="18" rx="0.5" stroke="#E0E0E0" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="19.5" y="3" width="2.5" height="18" rx="0.5" stroke="#E0E0E0" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

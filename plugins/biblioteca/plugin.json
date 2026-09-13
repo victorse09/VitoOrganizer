@@ -1,0 +1,9 @@
+{
+    "id": "biblioteca",
+    "name": "Biblioteca",
+    "module": "plugin",
+    "class": "BibliotecaPlugin",
+    "order": 7,
+    "icon": "library.svg",
+    "tab_color": "#20B2AA"
+}

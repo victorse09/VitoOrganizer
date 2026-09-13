@@ -1,0 +1,9 @@
+{
+    "name": "Tareas",
+    "module": "plugin",
+    "class": "TareasPlugin",
+    "version": "2.0",
+    "order": 3,
+    "icon": "tasks.svg",
+    "tab_color": "#a6e3a1"
+}

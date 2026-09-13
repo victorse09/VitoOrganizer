@@ -1,0 +1,9 @@
+{
+    "name": "Notas",
+    "module": "plugin",
+    "class": "NotasPlugin",
+    "version": "2.0",
+    "order": 4,
+    "icon": "notes.svg",
+    "tab_color": "#89dceb"
+}

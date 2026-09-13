@@ -1,0 +1,9 @@
+{
+    "name": "Cumpleaños",
+    "module": "plugin",
+    "class": "CumpleanosPlugin",
+    "version": "2.0",
+    "order": 2,
+    "icon": "birthday.svg",
+    "tab_color": "#f5c2e7"
+}

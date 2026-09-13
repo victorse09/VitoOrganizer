@@ -1,0 +1,32 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribución y empaquetado temporal
+build_packages_tmp/
+dist/
+*.deb
+*.flatpak
+
+# Entornos virtuales
+env/
+venv/
+.venv/
+
+# IDEs y editores
+.vscode/
+.idea/
+*.swp
+*~
+
+# Scripts de prueba y archivos temporales de scratch
+test*.py
+test*.png
+add_*.py
+patch_*.py
+run_xvfb.py
+
+# Archivos de datos o logs locales de pruebas
+*.log
+.DS_Store

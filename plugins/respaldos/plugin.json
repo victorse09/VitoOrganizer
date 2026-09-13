@@ -1,0 +1,9 @@
+{
+    "id": "respaldos",
+    "name": "Respaldos",
+    "module": "plugin",
+    "class": "RespaldosPlugin",
+    "order": 12,
+    "icon": "respaldos.svg",
+    "tab_color": "#20B2AA"
+}

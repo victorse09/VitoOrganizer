@@ -1,0 +1,9 @@
+{
+    "id": "laboratorio",
+    "name": "Laboratorio",
+    "module": "plugin",
+    "class": "LaboratorioPlugin",
+    "order": 6,
+    "icon": "lab.svg",
+    "tab_color": "#8A2BE2"
+}

@@ -1,0 +1,9 @@
+{
+    "name": "Planificador",
+    "module": "plugin",
+    "class": "PlanificadorPlugin",
+    "version": "2.0",
+    "order": 5,
+    "icon": "planner.svg",
+    "tab_color": "#fab387"
+}

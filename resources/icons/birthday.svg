@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none">
+  <!-- Candle flame -->
+  <path d="M12 3 C12 3 10.5 5 12 6.5 C13.5 5 12 3 12 3z" fill="#FFC107" stroke="#FFA000" stroke-width="0.5"/>
+  <!-- Candle stick -->
+  <rect x="11" y="6.5" width="2" height="4" rx="0.5" stroke="#00BCD4" stroke-width="1.5" fill="#B2EBF2"/>
+  <!-- Cake top -->
+  <rect x="4" y="10.5" width="16" height="5" rx="1" stroke="#E91E63" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="#F8BBD0"/>
+  <!-- Cake bottom -->
+  <rect x="5" y="15.5" width="14" height="5" rx="1" stroke="#D81B60" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="#F48FB1"/>
+  <!-- Frosting decoration -->
+  <path d="M4 13 Q6 14.5 8 13 Q10 11.5 12 13 Q14 14.5 16 13 Q18 11.5 20 13" stroke="#FFF" stroke-width="1" stroke-linecap="round" fill="none" opacity="0.9"/>
+</svg>
