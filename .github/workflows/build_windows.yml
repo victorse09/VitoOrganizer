@@ -1,0 +1,70 @@
+name: Build Windows Executable (.exe) & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install PyQt6 PyQt6-Svg fpdf2 pymupdf requests pillow markdown pyinstaller
+
+      - name: Build Executable with PyInstaller
+        shell: pwsh
+        run: |
+          pyinstaller --noconfirm --windowed --name "VitoOrganizer" `
+            --add-data "config;config" `
+            --add-data "core;core" `
+            --add-data "data;data" `
+            --add-data "docs;docs" `
+            --add-data "graphics;graphics" `
+            --add-data "plugins;plugins" `
+            --add-data "resources;resources" `
+            --add-data "tools;tools" `
+            --hidden-import "PyQt6.QtSvg" `
+            --hidden-import "PyQt6.QtPrintSupport" `
+            --hidden-import "fitz" `
+            --hidden-import "fpdf" `
+            main.py
+
+      - name: Create Portable Zip Package
+        shell: pwsh
+        run: |
+          Compress-Archive -Path dist\VitoOrganizer\* -DestinationPath dist\VitoOrganizer_Windows_x64.zip
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          name: "Vito Organizer ${{ github.ref_name }}"
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            dist/VitoOrganizer_Windows_x64.zip
+
+      - name: Upload Artifact (Workflow Run)
+        uses: actions/upload-artifact@v4
+        with:
+          name: VitoOrganizer_Windows_x64
+          path: dist/VitoOrganizer_Windows_x64.zip
+          retention-days: 14
