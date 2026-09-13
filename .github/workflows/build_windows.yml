@@ -26,7 +26,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install PyQt6 PyQt6-Svg fpdf2 pymupdf requests pillow markdown pyinstaller
+          pip install PyQt6 fpdf2 pymupdf requests pillow markdown pyinstaller
 
       - name: Build Executable with PyInstaller
         shell: pwsh
