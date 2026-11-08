@@ -4,6 +4,75 @@ Bitácora de desarrollo y control de versiones del proyecto **Vito Organizer**.
 
 ---
 
+## v.2.13 — Octubre 2026
+
+### Gráfico de Contenido en Sección Biblioteca
+* **Herramienta de Análisis de Almacenamiento en Biblioteca:** Integración del sistema de gráfico de uso de disco en la sección Biblioteca, accesible mediante un nuevo botón con ícono de gráfico (`chart.svg`) ubicado en la barra lateral inferior, al lado derecho del ícono de configuración (engranaje).
+* **Alcance Exclusivo a la Carpeta de Biblioteca:** El escaneo se focaliza exclusivamente en la ruta `<agenda>/biblioteca/`, analizando el tamaño y cantidad de archivos/subcarpetas de cada categoría documental (`Manuales`, `Datasheets`, `Libros`, `Revistas`, `doki`, etc.).
+* **Depuración Visual del Diálogo:** Corrección de fondos y estilos en `DiskUsageChartDialog` para eliminar recuadros oscuros accidentales en el título y en el resumen de espacio, integrando las etiquetas con transparencia total.
+
+### Rediseño Estilizado de Barras de Desplazamiento (ScrollBars)
+* **Pista y Esquinas Transparentes:** Eliminación de los fondos oscuros sólidos (`#0c0d16`) y recuadros toscos de las barras de scroll en toda la aplicación, permitiendo que la textura y color del papel crema de la agenda fluyan limpiamente.
+* **Diseño Minimalista y Delgado:** Reducción del grosor de 12 px a 8 px con tirador redondeado tipo píldora (`border-radius: 4px`) en tono translúcido adaptable (`rgba(130, 140, 160, 0.38)`), ofreciendo una apariencia moderna y armónica tanto sobre hojas claras como sobre paneles oscuros.
+
+### Conversor de Tornillería y Equivalencias Métrico / Pulgadas en Conversor de Unidades
+* **Conversor Bidireccional en Vivo (mm ↔ Pulgadas Decimales y Fracciones):** Incorporación de una nueva pestaña ("Tornillos ↔ Pulgadas") con cálculo dinámico en tiempo real entre milímetros, pulgadas en decimales y fracciones comerciales reducidas en base 64 (desde 1/16" hasta 1-1/4"), indicando la aproximación fraccionaria más cercana y el desvío exacto.
+* **Tabla Completa de Tornillos Métricos (M):** Catálogo de tornillería métrica ISO (M1.6 hasta M30, incluyendo M4, M6, etc.) con especificación de diámetro nominal, paso de rosca estándar y fino, broca recomendada para macho de roscar, medida de llave para tuerca/cabeza y equivalencia en pulgadas.
+* **Tabla de Tornillería y Tuercas en Pulgadas:** Guía técnica para tornillería estándar (#2 hasta 1-1/4", pasos UNC y UNF) con conversión exacta a milímetros, broca de roscado, medida de llave de tuerca y tornillo métrico equivalente más próximo.
+* **Búsqueda Dinámica y Copiado Rápido:** Buscador en tiempo real para filtrar por designación (ej: M6, M4, 1/4), medida de broca o llave, sincronización directa con el conversor al hacer clic en cualquier fila de las tablas y botones para copiar resultados o especificaciones técnicas completas al portapapeles.
+* **Depuración Estética (Transparencia en Etiquetas):** Corrección de estilos en el conversor de tornillería (`QFrame#calcCard`), eliminando fondos y recuadros oscuros accidentales para que los textos y resultados fluyan con transparencia total y perfecta armonía visual.
+* **Purga Integral de Emojis:** Reemplazo de caracteres de emojis en botones de copiado y avisos del conversor por texto claro y homogéneo, garantizando estabilidad visual y compatibilidad tipográfica total entre Linux y Windows.
+
+### Exportación a PDF de Ficha Técnica de Componentes en Laboratorio
+* **Generación de Ficha Técnica en PDF:** Integración del exportador a PDF para componentes electrónicos en Laboratorio. El botón de la barra de herramientas principal (`Generar PDF`) y la opción en el menú se habilitan dinámicamente cuando un componente se encuentra seleccionado y visible en la ficha de la página derecha.
+* **Diálogo de Configuración de Documento:** Ventana interactiva que permite seleccionar el tamaño de hoja con **Carta** (Letter) por defecto, **Oficio** (Legal) y **A4**; opciones para adjuntar la 1ª página, las 2 primeras páginas o el datasheet completo del PDF vinculado; y casilla para incluir el historial completo de movimientos de inventario (ingresos y egresos).
+* **Fusión Vectorial de Datasheets:** Integración de páginas del datasheet mediante PyMuPDF (`fitz`), garantizando texto seleccionable, máxima resolución y fidelidad gráfica del archivo original.
+* **Diseño Institucional Homogéneo:** Formato unificado con membrete oscuro (`#222436`), franja naranja corporativa (`#FF5722`), folio correlativo (`CorrelativosManager`), renderizado proporcional de la fotografía del componente y tabla detallada de movimientos de stock.
+
+### Exportación a PDF de Ficha Técnica de Instrumentos en Laboratorio
+* **Generación Formal de Ficha Técnica en PDF:** Habilitación reactiva del botón `Generar PDF` en la barra de herramientas principal al seleccionar cualquier instrumento de laboratorio (en la lista de inventario o en la vista detallada de registros).
+* **Diálogo Integral de Configuración de Documento:** Ventana que permite seleccionar el tamaño de página con **Carta** (Letter) por defecto, **Oficio** (Legal) y **A4**; opciones modulares para incluir la Ficha Principal (portada con fotografía, marca, modelo, tipo, S/N y estado operativo), Especificaciones Técnicas con tablas de funciones y escalas de medición, Descripción Técnica formateada en HTML y el Historial de Check Lists e inspecciones.
+* **Fusión Vectorial de Documentación (Datasheets y Manuales):** Inclusión de páginas seleccionadas (primera página, dos primeras páginas o documento completo) tanto para datasheets técnicos como para manuales de usuario asociados mediante PyMuPDF (`fitz`), conservando nitidez tipográfica y vectorial original.
+* **Diseño Institucional Unificado:** Documento formal con membrete corporativo (`#222436`), franja naranja (`#FF5722`), folio correlativo (`CorrelativosManager`), renderizado proporcional de la imagen del instrumento y tablas estilizadas.
+
+### Exportación a PDF de Ficha Técnica de Herramientas en Laboratorio
+* **Generación Formal de Ficha Técnica en PDF:** Habilitación reactiva del botón `Generar PDF` en la barra de herramientas principal al seleccionar cualquier herramienta de taller en la vista de Laboratorio.
+* **Diálogo Integral de Configuración de Documento:** Ventana que permite seleccionar el formato de página con **Carta** (Letter) por defecto, **Oficio** (Legal) y **A4**; opciones modulares para incluir la Ficha Principal (portada con fotografía, marca, modelo, tipo, estado operativo y notas), casilla para adjuntar el Historial de Chequeos y Mantenimientos, y selector de páginas (primera página, dos primeras páginas o documento completo) para manuales o documentación técnica asociada.
+* **Fusión Vectorial de Documentación:** Concatena limpiamente las páginas seleccionadas de los manuales y guías de operación en PDF mediante PyMuPDF (`fitz`), garantizando máxima nitidez vectorial y tipográfica.
+* **Diseño Institucional Unificado:** Documento formal con membrete corporativo (`#222436`), franja naranja (`#FF5722`), folio correlativo (`CorrelativosManager`), fotografía proporcional de la herramienta y tablas estilizadas de inspecciones.
+
+---
+
+## v.2.13 — Septiembre 2026
+
+### Paginación y Navegación en Sección de Respaldos
+* **Paginación Dinámica del Catálogo de Discos:** Implementación del cálculo adaptativo de elementos por página (`items_per_page`) en función de la altura disponible de la ventana.
+* **Integración con la Barra de Herramientas y Encuadernación:** Conexión de las señales `pagination_changed`, `go_to_page`, `get_total_pages` y `get_current_page` con los controles de navegación superior (`< Página X de Y >`) y la rotulación de números de página de la agenda abierta.
+* **Segmentación Limpia:** Eliminación de la lista infinita con scroll desbordado, permitiendo una lectura organizada pliego por pliego.
+
+### Mejoras de Visibilidad y Contraste en Biblioteca
+* **Iconografía Tematizada en Tarjetas Documentales:** Aplicación de `get_themed_svg_icon` con tono oscuro `#263238` para los iconos de categoría/documento y `#455A64` para el botón de edición rápida (lápiz/cuaderno), garantizando alto contraste y legibilidad sobre el fondo claro del papel.
+* **Estilos del Buscador y Botones Laterales:** Ajuste del campo de filtrado (eliminando fondo negro transparente) y mejora visual en los botones de exportación en el panel de lectura. Se ocultaron acciones duplicadas para los archivos propios.
+* **Pestañas de Configuración Independientes del SO:** Estandarización estética mediante CSS personalizado para todos los menús de configuración (Global, Laboratorio, Retro, Gastos), anulando la dependencia de temas nativos del sistema operativo (KDE, Cinnamon, Windows) y sustituyendo emojis por íconos SVG unificados para asegurar una apariencia oscura, moderna y homogénea en toda la plataforma.
+
+### Mejoras Mayores en el Editor Doki (.doki)
+* **Vista de Documento Continuo (Web Layout) Mejorada:** Rediseño visual del lienzo del editor con cálculo dinámico asíncrono (`documentSizeChanged`) que garantiza que todo el contenido se muestre sin recortes.
+* **Indicadores de Página Claros:** Implementación de líneas separadoras segmentadas grises y marcadores de número de página visibles en la esquina derecha que aparecen solo cuando se llena el espacio de la hoja base.
+* **Erradicación del Scroll Interno:** Incorporación de cálculo matemático de márgenes (`padding_y`) y evasión intencional de la rueda del ratón (`wheelEvent().ignore()`) en el editor de texto, forzando a que la navegación de la interfaz descanse exclusivamente sobre el deslizador externo general, logrando un flujo suave.
+* **Exportación PDF Precisa (WYSIWYG):** Añadido de un botón de exportación rápida a PDF en la barra de herramientas principal. El motor de impresión migró a `ScreenResolution` y fuentes basadas en puntos (`pt`), erradicando las discrepancias de escala (texto minúsculo) y doble marginación en el documento final.
+
+### Correcciones y Optimización en la Sección Notas
+* **Optimización de Rendimiento al Escribir:** Se eliminó la reconstrucción innecesaria del panel lateral de notas al tipear (evento `textChanged`), erradicando el parpadeo constante y mejorando la fluidez de escritura en texto plano y Markdown.
+* **Corrección del Lienzo a Mano Alzada:** Rediseño del área de dibujo (`HandwritingCanvasWidget`). Se eliminó el fondo sólido que tapaba los trazos, se aplicaron estilos a los menús de grosor y color para hacerlos visibles, y se implementó un mapeo preciso (`_map_to_image`) para alinear matemáticamente el trazo con la punta del cursor sin importar la resolución.
+* **Visibilidad de Interfaz Corregida:** Solucionado el problema de texto invisible (blanco sobre blanco) en la tabla de Enlaces Web y en los botones de alternancia de Markdown. Actualización del ícono de "Propiedades" por su versión oscura para mayor legibilidad.
+
+### Ajustes y Mejoras en la Sección Bodega
+* **Paginación Adaptativa de Listados:** Incorporación de cálculo automático de filas para la tabla de inventario en función del alto de la ventana, permitiendo navegar pliego por pliego y eliminando las barras de desplazamiento vertical nativas (integración total con el navegador de páginas general).
+* **Renovación del Panel de Alertas:** Reemplazo de la inestable tabla de elementos críticos (`QTableWidget`) en la vista de Consolidado por una inyección nativa en HTML/CSS, resolviendo problemas gráficos graves y conflictos de herencia visual con los temas globales.
+* **Depuración Visual (UI):** Sustitución de iconografía con problemas de contraste por vectores tematizados (`get_themed_svg_icon`) en botones de la vista detallada (Movimientos, Ficha), mejorando la legibilidad sobre fondos claros.
+
+---
+
 ## v.2.12 — Agosto 2026
 
 ### 📖 Centro de Información y Documentación Técnica (Markdown) en Menú Ayuda

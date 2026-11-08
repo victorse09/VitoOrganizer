@@ -12,7 +12,7 @@ from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QTabWidget,
     QWidget, QDoubleSpinBox, QComboBox, QLineEdit, QPushButton,
     QTableWidget, QTableWidgetItem, QHeaderView, QApplication,
-    QSpinBox, QAbstractItemView,
+    QSpinBox, QAbstractItemView, QStackedWidget, QFrame,
 )
 
 # =============================================================================
@@ -119,6 +119,8 @@ QHeaderView::section {
 }
 QLabel {
     color: #cdd6f4;
+    background: transparent;
+    border: none;
 }
 QScrollBar:vertical {
     background: #1e1e2e;
@@ -318,11 +320,145 @@ def _awg_resistance_ohm_per_km(n):
 
 
 # =============================================================================
+# Screws, threads and fractional inch conversion data
+# =============================================================================
+
+# ISO Metric Screws (Designation, Diam mm, Coarse Pitch mm, Tap Drill mm, Wrench mm, Approx Inch, Fine Pitch)
+_METRIC_SCREWS = [
+    ("M1.6",  1.6,  0.35,  1.25, "3.2",     '~1/16" (0.063")',          "0.20"),
+    ("M2",    2.0,  0.40,  1.60, "4.0",     '~5/64" (#2 / 0.079")',     "0.25"),
+    ("M2.5",  2.5,  0.45,  2.05, "5.0",     '~3/32" (#3 / 0.098")',     "0.35"),
+    ("M3",    3.0,  0.50,  2.50, "5.5",     '~1/8" (#4-#5 / 0.118")',   "0.35"),
+    ("M3.5",  3.5,  0.60,  2.90, "6.0",     '~9/64" (#6 / 0.138")',     "0.35"),
+    ("M4",    4.0,  0.70,  3.30, "7.0",     '~5/32" (#8 / 0.157")',     "0.50"),
+    ("M5",    5.0,  0.80,  4.20, "8.0",     '~3/16" (#10 / 0.197")',    "0.50"),
+    ("M6",    6.0,  1.00,  5.00, "10.0",    '~1/4" (15/64" / 0.236")',  "0.75"),
+    ("M7",    7.0,  1.00,  6.00, "11.0",    '~9/32" (0.276")',          "0.75"),
+    ("M8",    8.0,  1.25,  6.80, "13.0",    '~5/16" (0.315")',          "1.00 / 0.75"),
+    ("M10",  10.0,  1.50,  8.50, "16 / 17", '~3/8" (0.394")',           "1.25 / 1.00"),
+    ("M12",  12.0,  1.75, 10.20, "18 / 19", '~1/2" (15/32" / 0.472")',  "1.50 / 1.25"),
+    ("M14",  14.0,  2.00, 12.00, "21 / 22", '~9/16" (0.551")',          "1.50"),
+    ("M16",  16.0,  2.00, 14.00, "24.0",    '~5/8" (0.630")',           "1.50"),
+    ("M18",  18.0,  2.50, 15.50, "27.0",    '~11/16" (0.709")',         "2.00 / 1.50"),
+    ("M20",  20.0,  2.50, 17.50, "30.0",    '~3/4" (0.787")',           "2.00 / 1.50"),
+    ("M22",  22.0,  2.50, 19.50, "32.0",    '~7/8" (0.866")',           "2.00 / 1.50"),
+    ("M24",  24.0,  3.00, 21.00, "36.0",    '~15/16" (0.945")',         "2.00"),
+    ("M27",  27.0,  3.00, 24.00, "41.0",    '~1-1/16" (1.063")',        "2.00"),
+    ("M30",  30.0,  3.50, 26.50, "46.0",    '~1-3/16" (1.181")',        "2.00"),
+]
+
+# Inch Screws & Hardware (Fraction/Designation, Dec in, mm, Common Thread UNC/UNF, Tap Drill, Wrench, Metric Approx)
+_INCH_SCREWS = [
+    ('#2-56',   0.0860,  2.184, "#2-56 UNC / #2-64 UNF",   "1.85 mm (#50)",     '3/16" (~4.8 mm)',   "~M2.2 / M2"),
+    ('#3-48',   0.0990,  2.515, "#3-48 UNC / #3-56 UNF",   "2.10 mm (#47)",     '3/16" (~4.8 mm)',   "~M2.5"),
+    ('#4-40',   0.1120,  2.845, "#4-40 UNC / #4-48 UNF",   "2.35 mm (#43)",     '1/4" (~6.3 mm)',    "~M3"),
+    ('#5-40',   0.1250,  3.175, "#5-40 UNC / #5-44 UNF",   "2.65 mm (#38)",     '1/4" (~6.3 mm)',    "~M3 / M3.5"),
+    ('#6-32',   0.1380,  3.505, "#6-32 UNC / #6-40 UNF",   "2.85 mm (#36)",     '5/16" (~7.9 mm)',   "~M3.5"),
+    ('#8-32',   0.1640,  4.166, "#8-32 UNC / #8-36 UNF",   "3.50 mm (#29)",     '11/32" (~8.7 mm)',  "~M4"),
+    ('#10-24',  0.1900,  4.826, "#10-24 UNC / #10-32 UNF", "3.90 mm (#25)",     '3/8" (~9.5 mm)',    "~M5"),
+    ('#12-24',  0.2160,  5.486, "#12-24 UNC / #12-28 UNF", "4.50 mm (#16)",     '7/16" (~11.1 mm)',  "~M5.5"),
+    ('1/16"',   0.0625,  1.588, "1/16\"-64",               "1.20 mm",           '5/32" (~4.0 mm)',   "~M1.6"),
+    ('5/64"',   0.0781,  1.984, "5/64\"-56",               "1.55 mm",           '3/16" (~4.8 mm)',   "~M2"),
+    ('3/32"',   0.0938,  2.381, "3/32\"-48",               "1.90 mm",           '3/16" (~4.8 mm)',   "~M2.5"),
+    ('7/64"',   0.1094,  2.778, "7/64\"-40",               "2.25 mm",           '1/4" (~6.3 mm)',    "~M2.5 / M3"),
+    ('1/8"',    0.1250,  3.175, "1/8\"-40 BSW",            "2.55 mm",           '1/4" (~6.3 mm)',    "~M3"),
+    ('9/64"',   0.1406,  3.572, "9/64\"-36",               "2.90 mm",           '5/16" (~7.9 mm)',   "~M3.5"),
+    ('5/32"',   0.1562,  3.969, "5/32\"-32 BSW",           "3.20 mm",           '5/16" (~7.9 mm)',   "~M4"),
+    ('3/16"',   0.1875,  4.762, "3/16\"-24 BSW",           "3.70 mm",           '3/8" (~9.5 mm)',    "~M5"),
+    ('7/32"',   0.2188,  5.556, "7/32\"-24",               "4.40 mm",           '7/16" (~11.1 mm)',  "~M5.5"),
+    ('1/4"',    0.2500,  6.350, "1/4\"-20 UNC / 28 UNF",   "5.10 mm (#7)",      '7/16" (11.1 mm)',   "~M6"),
+    ('5/16"',   0.3125,  7.938, "5/16\"-18 UNC / 24 UNF",  "6.60 mm (F)",       '1/2" (12.7 mm)',    "~M8"),
+    ('3/8"',    0.3750,  9.525, "3/8\"-16 UNC / 24 UNF",   "8.00 mm (5/16\")",   '9/16" (14.3 mm)',   "~M10"),
+    ('7/16"',   0.4375, 11.112, "7/16\"-14 UNC / 20 UNF",  "9.40 mm (U)",       '5/8" (15.9 mm)',    "~M11 / M12"),
+    ('1/2"',    0.5000, 12.700, "1/2\"-13 UNC / 20 UNF",   "10.70 mm (27/64\")", '3/4" (19.0 mm)',    "~M12 / M13"),
+    ('9/16"',   0.5625, 14.288, "9/16\"-12 UNC / 18 UNF",  "12.20 mm",          '13/16" (20.6 mm)',  "~M14"),
+    ('5/8"',    0.6250, 15.875, "5/8\"-11 UNC / 18 UNF",   "13.50 mm (17/32\")", '15/16" (23.8 mm)',  "~M16"),
+    ('3/4"',    0.7500, 19.050, "3/4\"-10 UNC / 16 UNF",   "16.50 mm (21/32\")", '1-1/8" (28.6 mm)',  "~M20"),
+    ('7/8"',    0.8750, 22.225, "7/8\"-9 UNC / 14 UNF",    "19.50 mm (49/64\")", '1-5/16" (33.3 mm)', "~M22"),
+    ('1"',      1.0000, 25.400, "1\"-8 UNC / 12 UNF",      "22.25 mm (7/8\")",   '1-1/2" (38.1 mm)',  "~M24 / M25"),
+    ('1-1/8"',  1.1250, 28.575, "1-1/8\"-7 UNC / 12 UNF",  "25.00 mm",          '1-11/16" (42.9 mm)',"~M27 / M28"),
+    ('1-1/4"',  1.2500, 31.750, "1-1/4\"-7 UNC / 12 UNF",  "28.20 mm",          '1-7/8" (47.6 mm)',  "~M30 / M32"),
+]
+
+_COMMON_FRACTIONS = [
+    ('1/16"',  1/16),
+    ('5/64"',  5/64),
+    ('3/32"',  3/32),
+    ('7/64"',  7/64),
+    ('1/8"',   1/8),
+    ('9/64"',  9/64),
+    ('5/32"',  5/32),
+    ('3/16"',  3/16),
+    ('7/32"',  7/32),
+    ('1/4"',   1/4),
+    ('5/16"',  5/16),
+    ('3/8"',   3/8),
+    ('7/16"',  7/16),
+    ('1/2"',   1/2),
+    ('9/16"',  9/16),
+    ('5/8"',   5/8),
+    ('11/16"', 11/16),
+    ('3/4"',   3/4),
+    ('13/16"', 13/16),
+    ('7/8"',   7/8),
+    ('15/16"', 15/16),
+    ('1"',     1.0),
+    ('1-1/8"', 1.125),
+    ('1-1/4"', 1.25),
+]
+
+
+def _decimal_to_fraction_str(val_inches, max_denom=64):
+    """Convierte pulgadas decimales a fracción reducida en 64avos."""
+    if val_inches <= 0:
+        return '0"', 0.0, 0.0, True
+    n = round(val_inches * max_denom)
+    if n == 0:
+        return '0"', 0.0, -val_inches * 25.4, False
+    g = math.gcd(n, max_denom)
+    num = n // g
+    den = max_denom // g
+    whole = num // den
+    rem = num % den
+    if whole > 0 and rem > 0:
+        frac_str = f'{whole} {rem}/{den}"'
+    elif whole > 0:
+        frac_str = f'{whole}"'
+    else:
+        frac_str = f'{rem}/{den}"'
+    approx_val = n / max_denom
+    diff_mm = (val_inches - approx_val) * 25.4
+    is_exact = abs(diff_mm) < 0.001
+    return frac_str, approx_val, diff_mm, is_exact
+
+
+def _find_nearest_screws(mm):
+    """Encuentra el tornillo métrico y en pulgadas más próximo a una medida en mm."""
+    best_m = None
+    min_diff_m = float("inf")
+    for row in _METRIC_SCREWS:
+        diff = abs(row[1] - mm)
+        if diff < min_diff_m:
+            min_diff_m = diff
+            best_m = row
+
+    best_in = None
+    min_diff_in = float("inf")
+    for row in _INCH_SCREWS:
+        diff = abs(row[2] - mm)
+        if diff < min_diff_in:
+            min_diff_in = diff
+            best_in = row
+
+    return best_m, min_diff_m, best_in, min_diff_in
+
+
+# =============================================================================
 # Main dialog
 # =============================================================================
 
 class UnitConverterDialog(QDialog):
-    """Floating unit‑converter tool with physical, AWG and numeric tabs."""
+    """Floating unit‑converter tool with physical, AWG, screws and numeric tabs."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -330,7 +466,7 @@ class UnitConverterDialog(QDialog):
         self.setWindowFlags(
             Qt.WindowType.Tool | Qt.WindowType.WindowCloseButtonHint
         )
-        self.resize(520, 600)
+        self.resize(560, 620)
         self.setStyleSheet(_MOCHA_STYLE)
         self._setup_ui()
 
@@ -359,6 +495,7 @@ class UnitConverterDialog(QDialog):
 
         # Special tabs ----------------------------------------------------
         self._create_awg_tab()
+        self._create_screws_tab()
         self._create_numeric_tab()
 
     # --------------------------------------------------------------------- #
@@ -420,7 +557,7 @@ class UnitConverterDialog(QDialog):
         combo_dst.setMinimumWidth(120)
         row2.addWidget(combo_dst)
 
-        btn_copy = QPushButton("📋 Copiar")
+        btn_copy = QPushButton("Copiar")
         btn_copy.setFixedWidth(90)
         row2.addWidget(btn_copy)
         vbox.addLayout(row2)
@@ -537,7 +674,7 @@ class UnitConverterDialog(QDialog):
         combo_dst.setMinimumWidth(120)
         row2.addWidget(combo_dst)
 
-        btn_copy = QPushButton("📋 Copiar")
+        btn_copy = QPushButton("Copiar")
         btn_copy.setFixedWidth(90)
         row2.addWidget(btn_copy)
         vbox.addLayout(row2)
@@ -610,8 +747,8 @@ class UnitConverterDialog(QDialog):
         search_input.setMinimumWidth(120)
         search_row.addWidget(search_input, 1)
 
-        btn_copy_awg = QPushButton("📋 Copiar fila")
-        btn_copy_awg.setFixedWidth(110)
+        btn_copy_awg = QPushButton("Copiar fila")
+        btn_copy_awg.setFixedWidth(100)
         search_row.addWidget(btn_copy_awg)
         vbox.addLayout(search_row)
 
@@ -704,6 +841,336 @@ class UnitConverterDialog(QDialog):
         btn_copy_awg.clicked.connect(_copy_row)
 
     # --------------------------------------------------------------------- #
+    # Tornillos ↔ Pulgadas tab
+    # --------------------------------------------------------------------- #
+    def _create_screws_tab(self):
+        widget = QWidget()
+        vbox = QVBoxLayout(widget)
+        vbox.setContentsMargins(8, 8, 8, 8)
+        vbox.setSpacing(6)
+
+        # --- Card superior: Conversor interactivo ---
+        card = QFrame()
+        card.setObjectName("calcCard")
+        card.setStyleSheet("""
+            QFrame#calcCard {
+                background-color: #24273a;
+                border: 1px solid #45475a;
+                border-radius: 6px;
+                padding: 6px;
+            }
+            QFrame#calcCard QLabel {
+                background: transparent;
+                border: none;
+            }
+        """)
+        card_layout = QVBoxLayout(card)
+        card_layout.setContentsMargins(8, 8, 8, 8)
+        card_layout.setSpacing(6)
+
+        title = QLabel("Conversor Rápido: Métrico ↔ Pulgadas (Tornillos y Tuercas)")
+        title.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
+        title.setStyleSheet("color: #f9e2af; margin-bottom: 2px; background: transparent; border: none;")
+        card_layout.addWidget(title)
+
+        # Fila de controles interactivos
+        input_row = QHBoxLayout()
+        input_row.setSpacing(6)
+
+        input_row.addWidget(QLabel("mm:"))
+        spin_mm = QDoubleSpinBox()
+        spin_mm.setDecimals(3)
+        spin_mm.setRange(0.01, 500.0)
+        spin_mm.setValue(6.0)
+        spin_mm.setSingleStep(0.5)
+        spin_mm.setMinimumWidth(85)
+        input_row.addWidget(spin_mm)
+
+        input_row.addWidget(QLabel("Pulgada:"))
+        spin_in = QDoubleSpinBox()
+        spin_in.setDecimals(4)
+        spin_in.setRange(0.001, 20.0)
+        spin_in.setValue(6.0 / 25.4)
+        spin_in.setSingleStep(0.0625)
+        spin_in.setMinimumWidth(85)
+        input_row.addWidget(spin_in)
+
+        input_row.addWidget(QLabel("Fracción:"))
+        combo_frac = QComboBox()
+        combo_frac.addItem("(Elegir fracción...)")
+        for frac_label, frac_val in _COMMON_FRACTIONS:
+            combo_frac.addItem(f"{frac_label} ({frac_val * 25.4:.2f} mm)")
+        combo_frac.setMinimumWidth(130)
+        input_row.addWidget(combo_frac)
+
+        btn_copy_calc = QPushButton("Copiar")
+        btn_copy_calc.setFixedWidth(70)
+        input_row.addWidget(btn_copy_calc)
+        card_layout.addLayout(input_row)
+
+        # Cuadro de resultados resumidos
+        lbl_res_frac = QLabel()
+        lbl_res_frac.setStyleSheet("color: #cdd6f4; font-size: 12px; background: transparent; border: none;")
+        card_layout.addWidget(lbl_res_frac)
+
+        lbl_res_screw = QLabel()
+        lbl_res_screw.setStyleSheet("color: #a6e3a1; font-size: 12px; font-weight: bold; background: transparent; border: none;")
+        card_layout.addWidget(lbl_res_screw)
+
+        vbox.addWidget(card)
+
+        # --- Selector de tabla y búsqueda ---
+        nav_row = QHBoxLayout()
+        nav_row.setSpacing(6)
+
+        btn_view_metric = QPushButton("Tornillos Métricos (M)")
+        btn_view_metric.setCheckable(True)
+        btn_view_metric.setChecked(True)
+
+        btn_view_inch = QPushButton("Pulgadas (Tornillos y Tuercas)")
+        btn_view_inch.setCheckable(True)
+        btn_view_inch.setChecked(False)
+
+        def _update_tab_buttons():
+            if btn_view_metric.isChecked():
+                btn_view_metric.setStyleSheet("background-color: #45475a; color: #f9e2af; font-weight: bold; border: 1px solid #89b4fa;")
+                btn_view_inch.setStyleSheet("background-color: #313244; color: #cdd6f4; border: 1px solid #45475a;")
+            else:
+                btn_view_metric.setStyleSheet("background-color: #313244; color: #cdd6f4; border: 1px solid #45475a;")
+                btn_view_inch.setStyleSheet("background-color: #45475a; color: #f9e2af; font-weight: bold; border: 1px solid #89b4fa;")
+
+        nav_row.addWidget(btn_view_metric)
+        nav_row.addWidget(btn_view_inch)
+        nav_row.addStretch()
+        vbox.addLayout(nav_row)
+
+        # Fila de búsqueda y copiado de fila
+        search_row = QHBoxLayout()
+        search_row.addWidget(QLabel("Buscar:"))
+        search_input = QLineEdit()
+        search_input.setPlaceholderText("Ej: M6, M4, 1/4, llave 10, broca 5...")
+        search_input.setMinimumWidth(150)
+        search_row.addWidget(search_input, 1)
+
+        btn_copy_row = QPushButton("Copiar fila")
+        btn_copy_row.setFixedWidth(90)
+        search_row.addWidget(btn_copy_row)
+        vbox.addLayout(search_row)
+
+        # --- Contenedor Stacked para ambas tablas ---
+        stack = QStackedWidget()
+
+        # 1. Tabla Métrica
+        table_m = QTableWidget()
+        table_m.setColumnCount(6)
+        table_m.setHorizontalHeaderLabels([
+            "Métrica", "Diám. (mm)", "Paso Estándar",
+            "Broca Roscado", "Llave / Tuerca", "Equiv. Pulgada",
+        ])
+        table_m.horizontalHeader().setStretchLastSection(True)
+        for col in range(5):
+            table_m.horizontalHeader().setSectionResizeMode(col, QHeaderView.ResizeMode.ResizeToContents)
+        table_m.verticalHeader().setVisible(False)
+        table_m.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        table_m.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        table_m.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        table_m.setRowCount(len(_METRIC_SCREWS))
+
+        for row_idx, data in enumerate(_METRIC_SCREWS):
+            items = [
+                QTableWidgetItem(data[0]),
+                QTableWidgetItem(f"{data[1]:.2f}"),
+                QTableWidgetItem(f"{data[2]:.2f} mm"),
+                QTableWidgetItem(f"{data[3]:.2f} mm"),
+                QTableWidgetItem(f"{data[4]} mm"),
+                QTableWidgetItem(data[5]),
+            ]
+            for col_idx, item in enumerate(items):
+                align = Qt.AlignmentFlag.AlignCenter if col_idx == 0 else (
+                    Qt.AlignmentFlag.AlignRight if col_idx in (1, 2, 3, 4) else Qt.AlignmentFlag.AlignLeft
+                )
+                item.setTextAlignment(align | Qt.AlignmentFlag.AlignVCenter)
+                table_m.setItem(row_idx, col_idx, item)
+
+        stack.addWidget(table_m)
+
+        # 2. Tabla en Pulgadas
+        table_in = QTableWidget()
+        table_in.setColumnCount(7)
+        table_in.setHorizontalHeaderLabels([
+            "Medida Pulg.", "Decimal (in)", "Métrico (mm)",
+            "Rosca Estándar", "Broca Roscado", "Llave Tuerca / Cabeza", "Equiv. Métrica",
+        ])
+        table_in.horizontalHeader().setStretchLastSection(True)
+        for col in range(6):
+            table_in.horizontalHeader().setSectionResizeMode(col, QHeaderView.ResizeMode.ResizeToContents)
+        table_in.verticalHeader().setVisible(False)
+        table_in.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        table_in.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        table_in.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        table_in.setRowCount(len(_INCH_SCREWS))
+
+        for row_idx, data in enumerate(_INCH_SCREWS):
+            items = [
+                QTableWidgetItem(data[0]),
+                QTableWidgetItem(f"{data[1]:.4f}\""),
+                QTableWidgetItem(f"{data[2]:.3f}"),
+                QTableWidgetItem(data[3]),
+                QTableWidgetItem(data[4]),
+                QTableWidgetItem(data[5]),
+                QTableWidgetItem(data[6]),
+            ]
+            for col_idx, item in enumerate(items):
+                align = Qt.AlignmentFlag.AlignCenter if col_idx == 0 else (
+                    Qt.AlignmentFlag.AlignRight if col_idx in (1, 2) else Qt.AlignmentFlag.AlignLeft
+                )
+                item.setTextAlignment(align | Qt.AlignmentFlag.AlignVCenter)
+                table_in.setItem(row_idx, col_idx, item)
+
+        stack.addWidget(table_in)
+        vbox.addWidget(stack, 1)
+
+        _update_tab_buttons()
+
+        def _switch_to_metric():
+            btn_view_metric.setChecked(True)
+            btn_view_inch.setChecked(False)
+            _update_tab_buttons()
+            stack.setCurrentIndex(0)
+            _apply_search(search_input.text())
+
+        def _switch_to_inch():
+            btn_view_metric.setChecked(False)
+            btn_view_inch.setChecked(True)
+            _update_tab_buttons()
+            stack.setCurrentIndex(1)
+            _apply_search(search_input.text())
+
+        btn_view_metric.clicked.connect(_switch_to_metric)
+        btn_view_inch.clicked.connect(_switch_to_inch)
+
+        # --- Lógica de sincronización del Conversor Rápido ---
+        _syncing = {"flag": False}
+
+        def _update_results(mm_val, in_val):
+            frac_str, approx_in, diff_mm, is_exact = _decimal_to_fraction_str(in_val)
+            exact_txt = "exacta" if is_exact else f"más cercana (dif: {diff_mm:+.2f} mm)"
+            lbl_res_frac.setText(
+                f"<b>{mm_val:.3f} mm</b> = <b>{in_val:.4f}\"</b> | Fracción {exact_txt}: <b>{frac_str}</b>"
+            )
+
+            best_m, diff_m, best_in, diff_in = _find_nearest_screws(mm_val)
+            parts = []
+            if best_m:
+                m_diff = f" (dif: {diff_m:.2f} mm)" if diff_m > 0.05 else ""
+                parts.append(f"Métrica: <b>{best_m[0]}</b> (Paso {best_m[2]} mm, Broca {best_m[3]} mm, Llave {best_m[4]} mm){m_diff}")
+            if best_in:
+                in_diff = f" (dif: {diff_in:.2f} mm)" if diff_in > 0.05 else ""
+                parts.append(f"Pulgada: <b>{best_in[0]}</b> ({best_in[3]}, Llave {best_in[5]}){in_diff}")
+
+            lbl_res_screw.setText("<br>".join(parts))
+
+        def _on_mm_changed(val):
+            if _syncing["flag"]:
+                return
+            _syncing["flag"] = True
+            in_val = val / 25.4
+            spin_in.setValue(in_val)
+            _update_results(val, in_val)
+            _syncing["flag"] = False
+
+        def _on_in_changed(val):
+            if _syncing["flag"]:
+                return
+            _syncing["flag"] = True
+            mm_val = val * 25.4
+            spin_mm.setValue(mm_val)
+            _update_results(mm_val, val)
+            _syncing["flag"] = False
+
+        def _on_frac_changed(idx):
+            if _syncing["flag"] or idx <= 0:
+                return
+            _syncing["flag"] = True
+            frac_val = _COMMON_FRACTIONS[idx - 1][1]
+            spin_in.setValue(frac_val)
+            spin_mm.setValue(frac_val * 25.4)
+            _update_results(frac_val * 25.4, frac_val)
+            _syncing["flag"] = False
+
+        spin_mm.valueChanged.connect(_on_mm_changed)
+        spin_in.valueChanged.connect(_on_in_changed)
+        combo_frac.currentIndexChanged.connect(_on_frac_changed)
+
+        # Clic en fila de tabla -> Cargar en conversor
+        def _on_metric_row_clicked(row, _col):
+            if row < 0 or row >= len(_METRIC_SCREWS):
+                return
+            mm = _METRIC_SCREWS[row][1]
+            spin_mm.setValue(mm)
+
+        def _on_inch_row_clicked(row, _col):
+            if row < 0 or row >= len(_INCH_SCREWS):
+                return
+            dec_in = _INCH_SCREWS[row][1]
+            spin_in.setValue(dec_in)
+
+        table_m.cellClicked.connect(_on_metric_row_clicked)
+        table_in.cellClicked.connect(_on_inch_row_clicked)
+
+        # Búsqueda / filtrado
+        def _apply_search(text):
+            query = text.strip().lower()
+            current_table = table_m if stack.currentIndex() == 0 else table_in
+            for r in range(current_table.rowCount()):
+                match = False
+                if not query:
+                    match = True
+                else:
+                    for c in range(current_table.columnCount()):
+                        cell_item = current_table.item(r, c)
+                        if cell_item and query in cell_item.text().lower():
+                            match = True
+                            break
+                current_table.setRowHidden(r, not match)
+
+        search_input.textChanged.connect(_apply_search)
+
+        # Copiado
+        def _copy_calc():
+            mm_val = spin_mm.value()
+            in_val = spin_in.value()
+            frac_str, approx_in, diff_mm, is_exact = _decimal_to_fraction_str(in_val)
+            best_m, diff_m, best_in, diff_in = _find_nearest_screws(mm_val)
+            summary = (
+                f"{mm_val:.3f} mm = {in_val:.4f}\" ({frac_str})\n"
+                f"Métrica sugerida: {best_m[0]} (Paso {best_m[2]} mm, Broca {best_m[3]} mm, Llave {best_m[4]} mm)\n"
+                f"Pulgada sugerida: {best_in[0]} ({best_in[3]}, Llave {best_in[5]})"
+            )
+            QApplication.clipboard().setText(summary)
+
+        btn_copy_calc.clicked.connect(_copy_calc)
+
+        def _copy_table_row():
+            current_table = table_m if stack.currentIndex() == 0 else table_in
+            row = current_table.currentRow()
+            if row < 0:
+                return
+            parts = []
+            for col in range(current_table.columnCount()):
+                h = current_table.horizontalHeaderItem(col).text()
+                val = current_table.item(row, col).text()
+                parts.append(f"{h}: {val}")
+            QApplication.clipboard().setText(" | ".join(parts))
+
+        btn_copy_row.clicked.connect(_copy_table_row)
+
+        # Inicialización con M6
+        _update_results(6.0, 6.0 / 25.4)
+
+        self._tabs.addTab(widget, "Tornillos ↔ Pulgadas")
+
+    # --------------------------------------------------------------------- #
     # Numeric base‑converter tab
     # --------------------------------------------------------------------- #
     def _create_numeric_tab(self):
@@ -714,7 +1181,7 @@ class UnitConverterDialog(QDialog):
 
         title = QLabel("Conversor de Bases Numéricas")
         title.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
-        title.setStyleSheet("color: #f9e2af; margin-bottom: 4px;")
+        title.setStyleSheet("color: #f9e2af; margin-bottom: 4px; background: transparent; border: none;")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         vbox.addWidget(title)
 
@@ -749,8 +1216,8 @@ class UnitConverterDialog(QDialog):
             le.setFont(QFont("Segoe UI", 13))
             row.addWidget(le, 1)
 
-            btn = QPushButton("📋")
-            btn.setFixedWidth(36)
+            btn = QPushButton("Copiar")
+            btn.setFixedWidth(60)
             btn.setToolTip(f"Copiar {label_text.replace(':', '')}")
             row.addWidget(btn)
             vbox.addLayout(row)
@@ -765,7 +1232,7 @@ class UnitConverterDialog(QDialog):
 
         # Error label
         err_label = QLabel("")
-        err_label.setStyleSheet("color: #f38ba8; font-size: 11px;")
+        err_label.setStyleSheet("color: #f38ba8; font-size: 11px; background: transparent; border: none;")
         err_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         vbox.addWidget(err_label)
 
@@ -802,11 +1269,11 @@ class UnitConverterDialog(QDialog):
                 if value > max_val:
                     bits = combo_bits.currentText()
                     err_label.setText(
-                        f"⚠ Valor excede {bits} bits (máx {max_val})"
+                        f"Aviso: Valor excede {bits} bits (máx {max_val})"
                     )
                     value = value & max_val  # mask to fit
             except ValueError as e:
-                err_label.setText(f"⚠ Entrada inválida: {e}")
+                err_label.setText(f"Error: Entrada inválida: {e}")
                 _updating["flag"] = False
                 return
 

@@ -497,6 +497,33 @@ class RetroSettingsDialog(QDialog):
         layout.setSpacing(10)
 
         self.tabs = QTabWidget()
+        self.tabs.setStyleSheet("""
+            QTabWidget::pane {
+                border: 1px solid #45475a;
+                border-radius: 4px;
+                background-color: #1e1e2e;
+            }
+            QTabBar::tab {
+                background: #181825;
+                color: #a6adc8;
+                border: 1px solid #45475a;
+                border-bottom-color: #45475a;
+                border-top-left-radius: 6px;
+                border-top-right-radius: 6px;
+                min-width: 8ex;
+                padding: 6px 16px;
+                margin-right: 2px;
+            }
+            QTabBar::tab:selected {
+                background: #1e1e2e;
+                color: #cdd6f4;
+                border-bottom-color: #1e1e2e;
+                font-weight: bold;
+            }
+            QTabBar::tab:hover:!selected {
+                background: #313244;
+            }
+        """)
         
         tab_info = QWidget()
         info_layout = QVBoxLayout(tab_info)
@@ -548,8 +575,6 @@ class RetroSettingsDialog(QDialog):
         info_layout.addWidget(self.chk_show_filename)
         
         info_layout.addStretch()
-        
-        self.tabs.addTab(tab_info, "General")
 
         tab_lists = QWidget()
         lists_layout = QVBoxLayout(tab_lists)
@@ -586,8 +611,9 @@ class RetroSettingsDialog(QDialog):
         act_btn_layout.addWidget(self.btn_delete)
 
         lists_layout.addLayout(act_btn_layout)
-        
-        self.tabs.addTab(tab_lists, "Listas")
+        icons_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'resources', 'icons')
+        self.tabs.addTab(tab_info, QIcon(os.path.join(icons_dir, 'settings.svg')), "General")
+        self.tabs.addTab(tab_lists, QIcon(os.path.join(icons_dir, 'notes.svg')), "Listas")
 
         layout.addWidget(self.tabs, 1)
 

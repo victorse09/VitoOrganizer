@@ -1,3 +1,3 @@
-APP_VERSION = "2.12"
+APP_VERSION = "2.13"
 APP_NAME = "Vito Organizer"
 

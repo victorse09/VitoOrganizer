@@ -39,7 +39,7 @@ Section: utils
 Priority: optional
 Architecture: $ARCH
 Maintainer: Vitokin <vitokin@naseriana.org>
-Depends: python3, python3-pyqt6, python3-pyqt6.qtsvg, fonts-noto-color-emoji, fonts-dejavu-core
+Depends: python3, python3-pyqt6, python3-pyqt6.qtsvg, python3-fpdf | python3-fpdf2, python3-fitz | python3-pymupdf, python3-pil, fonts-noto-color-emoji, fonts-dejavu-core
 Description: Vito Organizer v$VERSION
  Agenda personal esqueumórfica al estilo clásico de Lotus Organizer
  con soporte para calendarios, tareas, notas multimedia, gestión de
@@ -91,13 +91,13 @@ FLATPAK_ID="org.naseriana.VitoOrganizer"
 FLATPAK_DIR="$BUILD_DIR/flatpak"
 mkdir -p "$FLATPAK_DIR"
 
-# Manifest Flatpak con instalación de PyQt6
+# Manifest Flatpak con runtime Freedesktop y dependencias Python completas
 cat <<EOF > "$FLATPAK_DIR/$FLATPAK_ID.json"
 {
   "app-id": "$FLATPAK_ID",
-  "runtime": "org.kde.Platform",
-  "runtime-version": "6.6",
-  "sdk": "org.kde.Sdk",
+  "runtime": "org.freedesktop.Platform",
+  "runtime-version": "25.08",
+  "sdk": "org.freedesktop.Sdk",
   "command": "vitoorganizer",
   "finish-args": [
     "--share=ipc",
@@ -117,7 +117,7 @@ cat <<EOF > "$FLATPAK_DIR/$FLATPAK_ID.json"
       "name": "pyqt6-deps",
       "buildsystem": "simple",
       "build-commands": [
-        "python3 -m pip install --prefix=/app PyQt6 PyQt6-sip"
+        "python3 -m pip install --prefix=/app PyQt6 PyQt6-sip fpdf2 PyMuPDF Pillow"
       ]
     },
     {
@@ -127,9 +127,18 @@ cat <<EOF > "$FLATPAK_DIR/$FLATPAK_ID.json"
         "mkdir -p /app/share/vitoorganizer /app/bin /app/share/applications /app/share/icons/hicolor/scalable/apps",
         "cp -r config core data graphics plugins resources tools main.py /app/share/vitoorganizer/",
         "echo '#!/bin/sh' > /app/bin/vitoorganizer",
-        "echo 'export PYTHONPATH=/app/share/vitoorganizer:\$PYTHONPATH' >> /app/bin/vitoorganizer",
-        "echo 'cd /app/share/vitoorganizer && exec python3 main.py \"\$@\"' >> /app/bin/vitoorganizer",
+        "echo 'export PYTHONPATH=\"/app/share/vitoorganizer:/app/lib/python3.13/site-packages:\\\$PYTHONPATH\"' >> /app/bin/vitoorganizer",
+        "echo 'cd /app/share/vitoorganizer && exec python3 main.py \"\\\$@\"' >> /app/bin/vitoorganizer",
         "chmod +x /app/bin/vitoorganizer",
+        "echo '[Desktop Entry]' > /app/share/applications/$FLATPAK_ID.desktop",
+        "echo 'Name=Vito Organizer' >> /app/share/applications/$FLATPAK_ID.desktop",
+        "echo 'Comment=Agenda personal esqueumórfica estilo Lotus Organizer' >> /app/share/applications/$FLATPAK_ID.desktop",
+        "echo 'Exec=vitoorganizer' >> /app/share/applications/$FLATPAK_ID.desktop",
+        "echo 'Icon=$FLATPAK_ID' >> /app/share/applications/$FLATPAK_ID.desktop",
+        "echo 'Terminal=false' >> /app/share/applications/$FLATPAK_ID.desktop",
+        "echo 'Type=Application' >> /app/share/applications/$FLATPAK_ID.desktop",
+        "echo 'Categories=Utility;Office;Clock;Calendar;' >> /app/share/applications/$FLATPAK_ID.desktop",
+        "echo 'StartupWMClass=vitoorganizer' >> /app/share/applications/$FLATPAK_ID.desktop",
         "cp resources/icons/vito_organizer_icon.svg /app/share/icons/hicolor/scalable/apps/$FLATPAK_ID.svg"
       ],
       "sources": [
@@ -145,7 +154,7 @@ EOF
 
 if flatpak-builder --version >/dev/null 2>&1; then
     echo "Compilando aplicación Flatpak..."
-    flatpak-builder --force-clean --state-dir="$BUILD_DIR/flatpak-state" "$BUILD_DIR/flatpak-build" "$FLATPAK_DIR/$FLATPAK_ID.json"
+    flatpak-builder --force-clean --disable-rofiles-fuse --state-dir="$BUILD_DIR/flatpak-state" "$BUILD_DIR/flatpak-build" "$FLATPAK_DIR/$FLATPAK_ID.json"
     echo "Inicializando repositorio ostree local..."
     mkdir -p "$BUILD_DIR/repo"
     if ! ostree refs --repo="$BUILD_DIR/repo" >/dev/null 2>&1; then

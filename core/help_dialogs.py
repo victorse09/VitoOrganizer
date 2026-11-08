@@ -780,7 +780,89 @@ class VersionDialog(QDialog):
         """)
 
         changelog_html = """
-        <h3 style='color: #a6e3a1; margin-bottom: 4px;'>v.2.12 - Agosto 2026</h3>
+        <h3 style='color: #a6e3a1; margin-bottom: 4px;'>v.2.13 - Octubre 2026</h3>
+        <ul style='margin-top: 4px; line-height: 1.5;'>
+            <li><b>Gráfico de Contenido en Sección Biblioteca:</b>
+                <ul style='margin-top: 2px;'>
+                    <li><b>Herramienta de Análisis de Almacenamiento:</b> Integración del gráfico interactivo de uso de disco en la barra lateral de Biblioteca, accesible mediante botón con icono SVG (<code>chart.svg</code>) situado al lado del engranaje de configuración.</li>
+                    <li><b>Alcance Exclusivo para Biblioteca:</b> Escaneo focalizado en el directorio <code>&lt;agenda&gt;/biblioteca/</code>, mostrando el desglose por categorías (Manuales, Datasheets, Libros, Revistas, doki, etc.).</li>
+                    <li><b>Depuración Visual del Diálogo:</b> Eliminación de recuadros oscuros accidentales en etiquetas de título y estadísticas, logrando transparencia y coherencia estética absoluta.</li>
+                </ul>
+            </li>
+            <li><b>Rediseño Estilizado de Barras de Desplazamiento (ScrollBars):</b>
+                <ul style='margin-top: 2px;'>
+                    <li><b>Pista y Esquinas Transparentes:</b> Supresión de fondos negros sólidos (<code>#0c0d16</code>) y bloques toscos para armonizar con el papel crema de las páginas de la agenda.</li>
+                    <li><b>Diseño Minimalista de 8 px:</b> Reducción de grosor a 8 px con deslizador redondeado tipo píldora en tono translúcido neutro (<code>rgba(130, 140, 160, 0.38)</code>).</li>
+                </ul>
+            </li>
+            <li><b>Conversor de Tornillería y Equivalencias Métrico / Pulgadas:</b>
+                <ul style='margin-top: 2px;'>
+                    <li><b>Conversor Rápido Bidireccional:</b> Cálculo dinámico entre milímetros, pulgadas decimales y fracciones comerciales en base 64 (1/16" a 1-1/4"), indicando fracción más cercana y desvío en mm.</li>
+                    <li><b>Tabla de Tornillos Métricos ISO:</b> Cobertura desde M1.6 hasta M30 (incluyendo M4, M6, etc.) con paso estándar y fino, broca recomendada, llave y equivalencia en pulgadas.</li>
+                    <li><b>Tabla de Tornillería en Pulgadas:</b> Tamaños desde #2 hasta 1-1/4" con pasos UNC/UNF, conversión métrica precisa, broca de roscado, llave y tornillo métrico afín.</li>
+                    <li><b>Filtrado en Tiempo Real y Copiado:</b> Buscador interactivo por medida o llave, sincronización directa con el conversor y botones de copiado sin emojis.</li>
+                    <li><b>Transparencia y Depuración Visual:</b> Supresión de recuadros oscuros accidentales en etiquetas del panel de cálculo, permitiendo que las leyendas y resultados se integren con total naturalidad estética sobre la tarjeta.</li>
+                </ul>
+            </li>
+            <li><b>Exportación a PDF de Ficha de Componentes en Laboratorio:</b>
+                <ul style='margin-top: 2px;'>
+                    <li><b>Generación Reactiva en Barra de Herramientas:</b> Habilitación dinámica del botón <code>Generar PDF</code> al seleccionar cualquier componente electrónico en la vista de Laboratorio.</li>
+                    <li><b>Diálogo de Formato y Datasheets:</b> Configuración de tamaño de página con Carta por defecto (más Oficio y A4), inclusión de la 1ª página, 2 primeras páginas o el datasheet completo en PDF y casilla para adjuntar el historial de movimientos de inventario.</li>
+                    <li><b>Fusión Vectorial y Membrete Oficial:</b> Generación de documento formal con diseño institucional (#222436 / #FF5722), folio correlativo, foto del componente y páginas de datasheet nítidas mediante PyMuPDF.</li>
+                </ul>
+            </li>
+            <li><b>Exportación a PDF de Ficha de Instrumentos en Laboratorio:</b>
+                <ul style='margin-top: 2px;'>
+                    <li><b>Activación en Barra de Herramientas:</b> Habilitación dinámica del botón <code>Generar PDF</code> al seleccionar cualquier instrumento de laboratorio o ingresar en su vista de registros.</li>
+                    <li><b>Diálogo Integral de Configuración:</b> Selección de tamaño de página con Carta por defecto (más Oficio y A4), inclusión de Ficha Principal, Especificaciones Técnicas (tablas de funciones y rangos), Descripción Técnica formateada en HTML y el Historial de Check Lists e inspecciones.</li>
+                    <li><b>Fusión Vectorial de Documentación (Datasheets y Manuales):</b> Inclusión de 1ª página, 2 primeras páginas o documento completo para datasheets y manuales de usuario asociados mediante PyMuPDF.</li>
+                </ul>
+            </li>
+            <li><b>Exportación a PDF de Ficha de Herramientas en Laboratorio:</b>
+                <ul style='margin-top: 2px;'>
+                    <li><b>Activación en Barra de Herramientas:</b> Habilitación dinámica del botón <code>Generar PDF</code> al seleccionar cualquier herramienta de taller en la vista de Laboratorio.</li>
+                    <li><b>Diálogo Integral de Configuración:</b> Selección de formato de página con Carta por defecto (más Oficio y A4), inclusión de Ficha Principal (portada con fotografía, marca, modelo, tipo, estado operativo y notas), casilla para historial de chequeos y mantenimientos, y selector de páginas (1ª pág, 2 primeras o completo) para documentación técnica vinculada.</li>
+                    <li><b>Fusión Vectorial y Membrete Oficial:</b> Generación de documento formal institucional (#222436 / #FF5722), folio correlativo, fotografía proporcional de la herramienta y concatenación de manuales mediante PyMuPDF.</li>
+                </ul>
+            </li>
+        </ul>
+        <h3 style='color: #89b4fa; margin-bottom: 4px;'>v.2.13 - Septiembre 2026</h3>
+        <ul style='margin-top: 4px; line-height: 1.5;'>
+            <li><b>Paginación y Navegación Dinámica en Sección de Respaldos:</b>
+                <ul style='margin-top: 2px;'>
+                    <li><b>Paginación Adaptativa del Catálogo de Discos:</b> Cálculo automático de la cantidad de tarjetas visibles por página en función de la altura disponible de la ventana, eliminando el desbordamiento de scroll infinito.</li>
+                    <li><b>Integración con Controles de Navegación de la Agenda:</b> Sincronización completa con los botones de avance y retroceso de página de la barra superior (<code>&lt; 1 de X &gt;</code>) y los números de página en la encuadernación del libro abierto.</li>
+                </ul>
+            </li>
+            <li><b>Mejoras Globales de Visibilidad, Contraste e Interfaz:</b>
+                <ul style='margin-top: 2px;'>
+                    <li><b>Pestañas de Configuración Independientes del SO:</b> Diseño unificado (CSS) y reemplazo de emojis por SVG en todos los menús de configuración (Global, Laboratorio, Retro, Gastos) garantizando consistencia en Windows, KDE y Cinnamon.</li>
+                    <li><b>Iconografía SVG Tematizada de Alto Contraste:</b> Aplicación de tonos oscuros nítidos para iconos, solucionado el fondo oscuro del buscador y limpieza de botones de acción duplicados.</li>
+                </ul>
+            </li>
+            <li><b>Mejoras Mayores en el Editor Doki (.doki):</b>
+                <ul style='margin-top: 2px;'>
+                    <li><b>Lienzo Fijo sin Scroll Interno:</b> Rediseño asíncrono para crear y mantener una hoja visible completa, permitiendo un desplazamiento orgánico general en lugar de atascos por scroll interno.</li>
+                    <li><b>Paginación Visual Dinámica:</b> Separación visual con líneas segmentadas y marcadores claros en las esquinas que aparecen según crezca el documento.</li>
+                    <li><b>Precisión en Exportación a PDF:</b> Resolución nativa en puntos y eliminación de márgenes dobles ocultos, garantizando proporciones tipo MS Word desde el nuevo botón rojo directo.</li>
+                </ul>
+            </li>
+            <li><b>Correcciones y Optimización en la Sección Notas:</b>
+                <ul style='margin-top: 2px;'>
+                    <li><b>Optimización de Rendimiento al Escribir:</b> Eliminación del parpadeo de interfaz al editar notas en texto plano y Markdown debido a recargas innecesarias.</li>
+                    <li><b>Corrección del Lienzo a Mano Alzada:</b> Restaurada la visibilidad de los trazos eliminando fondos obstructivos. Se implementó un cálculo exacto de coordenadas con el ratón independiente de la resolución.</li>
+                    <li><b>Mejoras Visuales:</b> Corrección de texto invisible (blanco sobre blanco) en tablas de enlaces y botones de Markdown, e iconografía actualizada al modo claro para mejor lectura.</li>
+                </ul>
+            </li>
+            <li><b>Ajustes y Mejoras en la Sección Bodega:</b>
+                <ul style='margin-top: 2px;'>
+                    <li><b>Paginación Adaptativa de Listados:</b> Eliminación del desbordamiento vertical y las barras nativas. Ahora el inventario de stock calcula automáticamente el número exacto de filas permitidas por la ventana.</li>
+                    <li><b>Renovación del Panel de Alertas:</b> El reporte en el Consolidado eliminó tablas estorbosas y en su lugar ahora dibuja las alertas críticas directamente con HTML nativo para mayor limpieza visual.</li>
+                    <li><b>Depuración Visual (UI):</b> Uso explícito de SVG tintados (`get_themed_svg_icon`) para garantizar legibilidad de los botones en las fichas de stock sin importar la plataforma.</li>
+                </ul>
+            </li>
+        </ul>
+        <h3 style='color: #89b4fa; margin-bottom: 4px;'>v.2.12 - Agosto 2026</h3>
         <ul style='margin-top: 4px; line-height: 1.5;'>
             <li><b>Creador y Editor de Documentos Propios (.doki) en Biblioteca:</b>
                 <ul style='margin-top: 2px;'>

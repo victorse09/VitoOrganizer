@@ -9,7 +9,7 @@ from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, 
     QTextEdit, QPushButton, QComboBox, QSpinBox, QDoubleSpinBox, QCheckBox,
     QFormLayout, QMessageBox, QDateEdit, QTabWidget, QWidget, 
-    QListWidget, QInputDialog, QListWidgetItem
+    QListWidget, QInputDialog, QListWidgetItem, QRadioButton, QButtonGroup, QGroupBox
 )
 import os
 
@@ -722,6 +722,33 @@ class LabSettingsDialog(QDialog):
 
         # Tab Widget
         self.tabs = QTabWidget()
+        self.tabs.setStyleSheet("""
+            QTabWidget::pane {
+                border: 1px solid #45475a;
+                border-radius: 4px;
+                background-color: #1e1e2e;
+            }
+            QTabBar::tab {
+                background: #181825;
+                color: #a6adc8;
+                border: 1px solid #45475a;
+                border-bottom-color: #45475a;
+                border-top-left-radius: 6px;
+                border-top-right-radius: 6px;
+                min-width: 8ex;
+                padding: 6px 16px;
+                margin-right: 2px;
+            }
+            QTabBar::tab:selected {
+                background: #1e1e2e;
+                color: #cdd6f4;
+                border-bottom-color: #1e1e2e;
+                font-weight: bold;
+            }
+            QTabBar::tab:hover:!selected {
+                background: #313244;
+            }
+        """)
         
         # Tab 1: Info / General
         tab_info = QWidget()
@@ -767,8 +794,6 @@ class LabSettingsDialog(QDialog):
         info_layout.addLayout(sort_layout)
         
         info_layout.addStretch()
-        
-        self.tabs.addTab(tab_info, "General")
 
         # Tab 2: Listas
         tab_lists = QWidget()
@@ -807,8 +832,9 @@ class LabSettingsDialog(QDialog):
         act_btn_layout.addWidget(self.btn_delete)
 
         lists_layout.addLayout(act_btn_layout)
-        
-        self.tabs.addTab(tab_lists, "Listas")
+        icons_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'resources', 'icons')
+        self.tabs.addTab(tab_info, QIcon(os.path.join(icons_dir, 'settings.svg')), "General")
+        self.tabs.addTab(tab_lists, QIcon(os.path.join(icons_dir, 'notes.svg')), "Listas")
 
         layout.addWidget(self.tabs, 1)
 
@@ -1953,3 +1979,596 @@ class ProjectCalculationDialog(QDialog):
             'comment': self.comment_input.toPlainText().strip()
         }
         self.accept()
+
+
+class ComponentPDFExportDialog(QDialog):
+    """Diálogo de opciones para generar la ficha técnica en PDF de un componente."""
+
+    def __init__(self, component: dict, datasheets: list = None, parent=None):
+        super().__init__(parent)
+        self.component = component or {}
+        self.datasheets = datasheets or []
+        self.export_config = None
+
+        self.setWindowTitle("Exportar Ficha de Componente a PDF")
+        self.setMinimumWidth(450)
+        self._setup_ui()
+
+    def _setup_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setSpacing(14)
+
+        # 1. Cabecera informativa del componente
+        comp_name = self.component.get('name', 'Componente')
+        comp_type = self.component.get('type', 'N/A')
+        comp_cat = self.component.get('category', 'N/A')
+        stock_qty = self.component.get('stock_quantity', 0)
+
+        info_box = QLabel(
+            f"Componente: <b style='color: #FFFFFF;'>{comp_name}</b><br>"
+            f"<span style='color: #A0A5C0;'>Tipo: {comp_type} | Encapsulado: {comp_cat} | Stock: {stock_qty} un.</span>"
+        )
+        info_box.setStyleSheet(
+            "background: rgba(255, 255, 255, 0.06); color: #E0E0E0; font-size: 13px; "
+            "padding: 10px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1);"
+        )
+        layout.addWidget(info_box)
+
+        form = QFormLayout()
+        form.setSpacing(10)
+
+        # 2. Formato de página (por defecto Carta, después Oficio y A4)
+        self.format_combo = QComboBox()
+        self.format_combo.addItem("Carta (Letter - 215.9 x 279.4 mm)", "letter")
+        self.format_combo.addItem("Oficio (Legal - 215.9 x 355.6 mm)", "legal")
+        self.format_combo.addItem("A4 (210.0 x 297.0 mm)", "a4")
+        self.format_combo.setCurrentIndex(0)  # Carta por defecto
+        form.addRow("Formato de Página:", self.format_combo)
+        layout.addLayout(form)
+
+        # 3. Opciones de Datasheet
+        ds_box = QGroupBox("Opciones de Datasheet")
+        ds_box.setStyleSheet("QGroupBox { font-weight: bold; color: #f9e2af; margin-top: 6px; }")
+        ds_layout = QVBoxLayout(ds_box)
+        ds_layout.setSpacing(8)
+
+        self.chk_datasheet = QCheckBox("Adjuntar páginas del Datasheet al documento")
+        has_datasheets = len(self.datasheets) > 0
+
+        if has_datasheets:
+            self.chk_datasheet.setChecked(True)
+            ds_layout.addWidget(self.chk_datasheet)
+
+            # Selector de archivo si hay más de uno
+            if len(self.datasheets) > 1:
+                ds_sel_layout = QHBoxLayout()
+                ds_sel_layout.addWidget(QLabel("Datasheet:"))
+                self.ds_combo = QComboBox()
+                for name, path in self.datasheets:
+                    self.ds_combo.addItem(name, path)
+                ds_sel_layout.addWidget(self.ds_combo, 1)
+                ds_layout.addLayout(ds_sel_layout)
+            else:
+                self.ds_combo = None
+
+            # Opciones de páginas (1, 2 primeras o completo)
+            pages_row = QHBoxLayout()
+            pages_row.setContentsMargins(20, 0, 0, 0)
+            self.radio_ds_1 = QRadioButton("Primera página (Pág. 1)")
+            self.radio_ds_2 = QRadioButton("Dos primeras páginas (Págs. 1 y 2)")
+            self.radio_ds_all = QRadioButton("Datasheet completo")
+            self.radio_ds_1.setChecked(True)
+
+            self.ds_page_group = QButtonGroup(self)
+            self.ds_page_group.addButton(self.radio_ds_1, 1)
+            self.ds_page_group.addButton(self.radio_ds_2, 2)
+            self.ds_page_group.addButton(self.radio_ds_all, 3)
+
+            pages_row.addWidget(self.radio_ds_1)
+            pages_row.addWidget(self.radio_ds_2)
+            pages_row.addWidget(self.radio_ds_all)
+            pages_row.addStretch()
+            ds_layout.addLayout(pages_row)
+
+            def _toggle_ds_options(checked):
+                self.radio_ds_1.setEnabled(checked)
+                self.radio_ds_2.setEnabled(checked)
+                self.radio_ds_all.setEnabled(checked)
+                if self.ds_combo:
+                    self.ds_combo.setEnabled(checked)
+
+            self.chk_datasheet.toggled.connect(_toggle_ds_options)
+        else:
+            self.chk_datasheet.setChecked(False)
+            self.chk_datasheet.setEnabled(False)
+            self.chk_datasheet.setText("Adjuntar páginas del Datasheet (Sin datasheets asociados)")
+            ds_layout.addWidget(self.chk_datasheet)
+            self.ds_combo = None
+            self.radio_ds_1 = None
+            self.radio_ds_2 = None
+            self.radio_ds_all = None
+
+        layout.addWidget(ds_box)
+
+        # 4. Opciones de Movimientos de inventario
+        mov_box = QGroupBox("Historial de Inventario")
+        mov_box.setStyleSheet("QGroupBox { font-weight: bold; color: #f9e2af; margin-top: 6px; }")
+        mov_layout = QVBoxLayout(mov_box)
+
+        movements = self.component.get('movements', [])
+        num_movs = len(movements)
+        mov_label = f"Incluir historial de movimientos ({num_movs} registrados)" if num_movs > 0 else "Incluir historial de movimientos (Sin registros)"
+        self.chk_movements = QCheckBox(mov_label)
+        self.chk_movements.setChecked(num_movs > 0)
+        mov_layout.addWidget(self.chk_movements)
+        layout.addWidget(mov_box)
+
+        # 5. Botones de acción
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch()
+
+        btn_cancel = QPushButton("Cancelar")
+        btn_cancel.clicked.connect(self.reject)
+
+        btn_export = QPushButton("Generar PDF")
+        btn_export.setStyleSheet(
+            "background-color: #ff5722; color: #ffffff; border: none; "
+            "font-weight: bold; padding: 6px 16px; border-radius: 6px;"
+        )
+        btn_export.setDefault(True)
+        btn_export.clicked.connect(self._on_export)
+
+        btn_layout.addWidget(btn_cancel)
+        btn_layout.addWidget(btn_export)
+        layout.addLayout(btn_layout)
+
+    def _on_export(self):
+        ds_path = None
+        if self.chk_datasheet.isChecked() and self.datasheets:
+            if self.ds_combo:
+                ds_path = self.ds_combo.currentData()
+            else:
+                ds_path = self.datasheets[0][1]
+
+        ds_pages = 1
+        if self.radio_ds_all and self.radio_ds_all.isChecked():
+            ds_pages = 'all'
+        elif self.radio_ds_2 and self.radio_ds_2.isChecked():
+            ds_pages = 2
+
+        self.export_config = {
+            'page_format': self.format_combo.currentData(),
+            'include_datasheet': self.chk_datasheet.isChecked() and bool(ds_path),
+            'datasheet_pages': ds_pages,
+            'datasheet_path': ds_path,
+            'include_movements': self.chk_movements.isChecked()
+        }
+        self.accept()
+
+
+class InstrumentPDFExportDialog(QDialog):
+    """Diálogo de opciones para generar la ficha técnica en PDF de un instrumento de laboratorio."""
+
+    def __init__(self, instrument: dict, datasheets: list = None, manuals: list = None, agenda_path: str = None, parent=None):
+        super().__init__(parent)
+        self.instrument = instrument or {}
+        self.datasheets = datasheets or []
+        self.manuals = manuals or []
+        self.agenda_path = agenda_path
+        self.export_config = None
+
+        self.setWindowTitle("Exportar Ficha de Instrumento a PDF")
+        self.setMinimumWidth(480)
+        self._setup_ui()
+
+    def _setup_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setSpacing(14)
+
+        # 1. Cabecera informativa del instrumento
+        inst_name = self.instrument.get('name', 'Instrumento')
+        inst_brand = self.instrument.get('brand', '')
+        inst_model = self.instrument.get('model', '')
+        inst_type = self.instrument.get('type', 'N/A')
+        inst_sn = self.instrument.get('serial_number', 'N/A')
+        inst_status = self.instrument.get('status', 'Operativo')
+
+        brand_model_str = f"{inst_brand} {inst_model}".strip() or "N/A"
+        info_box = QLabel(
+            f"Instrumento: <b style='color: #FFFFFF;'>{inst_name}</b> ({brand_model_str})<br>"
+            f"<span style='color: #A0A5C0;'>Tipo: {inst_type} | S/N: {inst_sn} | Estado: {inst_status}</span>"
+        )
+        info_box.setStyleSheet(
+            "background: rgba(255, 255, 255, 0.06); color: #E0E0E0; font-size: 13px; "
+            "padding: 10px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1);"
+        )
+        layout.addWidget(info_box)
+
+        form = QFormLayout()
+        form.setSpacing(10)
+
+        # 2. Formato de página (por defecto Carta, después Oficio y A4)
+        self.format_combo = QComboBox()
+        self.format_combo.addItem("Carta (Letter - 215.9 x 279.4 mm)", "letter")
+        self.format_combo.addItem("Oficio (Legal - 215.9 x 355.6 mm)", "legal")
+        self.format_combo.addItem("A4 (210.0 x 297.0 mm)", "a4")
+        self.format_combo.setCurrentIndex(0)  # Carta por defecto
+        form.addRow("Formato de Página:", self.format_combo)
+        layout.addLayout(form)
+
+        # 3. Secciones del Documento
+        sec_box = QGroupBox("Secciones de la Ficha Técnica")
+        sec_box.setStyleSheet("QGroupBox { font-weight: bold; color: #f9e2af; margin-top: 6px; }")
+        sec_layout = QVBoxLayout(sec_box)
+        sec_layout.setSpacing(8)
+
+        chk_base = QCheckBox("Ficha Principal (Portada e Identificación General — Incluida al inicio)")
+        chk_base.setChecked(True)
+        chk_base.setEnabled(False)
+        sec_layout.addWidget(chk_base)
+
+        self.chk_specs = QCheckBox("Incluir Especificaciones Técnicas y Rangos de Medición")
+        self.chk_specs.setChecked(True)
+        sec_layout.addWidget(self.chk_specs)
+
+        self.chk_desc = QCheckBox("Incluir Descripción Técnica (HTML / Texto Enriquecido)")
+        self.chk_desc.setChecked(True)
+        sec_layout.addWidget(self.chk_desc)
+
+        n_chk = len(self.instrument.get('history', []))
+        lbl_chk = f"Incluir Historial de Check Lists y Mantenimientos ({n_chk} registrados)" if n_chk > 0 else "Incluir Historial de Check Lists y Mantenimientos (Sin registros)"
+        self.chk_checklist = QCheckBox(lbl_chk)
+        self.chk_checklist.setChecked(n_chk > 0)
+        sec_layout.addWidget(self.chk_checklist)
+
+        layout.addWidget(sec_box)
+
+        # 4. Documentación Adjunta (Datasheet y Manual)
+        doc_box = QGroupBox("Documentación Adjunta (Datasheet y Manual)")
+        doc_box.setStyleSheet("QGroupBox { font-weight: bold; color: #f9e2af; margin-top: 6px; }")
+        doc_layout = QVBoxLayout(doc_box)
+        doc_layout.setSpacing(10)
+
+        # Subsección Datasheet
+        self.chk_datasheet = QCheckBox("Adjuntar páginas del Datasheet")
+        has_ds = len(self.datasheets) > 0
+        if has_ds:
+            self.chk_datasheet.setChecked(True)
+            doc_layout.addWidget(self.chk_datasheet)
+
+            if len(self.datasheets) > 1:
+                ds_row = QHBoxLayout()
+                ds_row.addWidget(QLabel("Archivo Datasheet:"))
+                self.ds_combo = QComboBox()
+                for name, path in self.datasheets:
+                    self.ds_combo.addItem(name, path)
+                ds_row.addWidget(self.ds_combo, 1)
+                doc_layout.addLayout(ds_row)
+            else:
+                self.ds_combo = None
+
+            ds_pages_row = QHBoxLayout()
+            ds_pages_row.setContentsMargins(20, 0, 0, 0)
+            self.radio_ds_1 = QRadioButton("Primera página (Pág. 1)")
+            self.radio_ds_2 = QRadioButton("Dos primeras páginas (Págs. 1 y 2)")
+            self.radio_ds_all = QRadioButton("Datasheet completo")
+            self.radio_ds_1.setChecked(True)
+
+            self.ds_page_group = QButtonGroup(self)
+            self.ds_page_group.addButton(self.radio_ds_1, 1)
+            self.ds_page_group.addButton(self.radio_ds_2, 2)
+            self.ds_page_group.addButton(self.radio_ds_all, 3)
+
+            ds_pages_row.addWidget(self.radio_ds_1)
+            ds_pages_row.addWidget(self.radio_ds_2)
+            ds_pages_row.addWidget(self.radio_ds_all)
+            ds_pages_row.addStretch()
+            doc_layout.addLayout(ds_pages_row)
+
+            def _toggle_ds(checked):
+                self.radio_ds_1.setEnabled(checked)
+                self.radio_ds_2.setEnabled(checked)
+                self.radio_ds_all.setEnabled(checked)
+                if self.ds_combo:
+                    self.ds_combo.setEnabled(checked)
+
+            self.chk_datasheet.toggled.connect(_toggle_ds)
+        else:
+            self.chk_datasheet.setChecked(False)
+            self.chk_datasheet.setEnabled(False)
+            self.chk_datasheet.setText("Adjuntar páginas del Datasheet (Sin datasheets asociados)")
+            doc_layout.addWidget(self.chk_datasheet)
+            self.ds_combo = None
+            self.radio_ds_1 = None
+            self.radio_ds_2 = None
+            self.radio_ds_all = None
+
+        # Subsección Manual
+        self.chk_manual = QCheckBox("Adjuntar páginas del Manual de Usuario")
+        has_man = len(self.manuals) > 0
+        if has_man:
+            self.chk_manual.setChecked(True)
+            doc_layout.addWidget(self.chk_manual)
+
+            if len(self.manuals) > 1:
+                man_row = QHBoxLayout()
+                man_row.addWidget(QLabel("Archivo Manual:"))
+                self.man_combo = QComboBox()
+                for name, path in self.manuals:
+                    self.man_combo.addItem(name, path)
+                man_row.addWidget(self.man_combo, 1)
+                doc_layout.addLayout(man_row)
+            else:
+                self.man_combo = None
+
+            man_pages_row = QHBoxLayout()
+            man_pages_row.setContentsMargins(20, 0, 0, 0)
+            self.radio_man_1 = QRadioButton("Primera página (Pág. 1)")
+            self.radio_man_2 = QRadioButton("Dos primeras páginas (Págs. 1 y 2)")
+            self.radio_man_all = QRadioButton("Manual completo")
+            self.radio_man_1.setChecked(True)
+
+            self.man_page_group = QButtonGroup(self)
+            self.man_page_group.addButton(self.radio_man_1, 1)
+            self.man_page_group.addButton(self.radio_man_2, 2)
+            self.man_page_group.addButton(self.radio_man_all, 3)
+
+            man_pages_row.addWidget(self.radio_man_1)
+            man_pages_row.addWidget(self.radio_man_2)
+            man_pages_row.addWidget(self.radio_man_all)
+            man_pages_row.addStretch()
+            doc_layout.addLayout(man_pages_row)
+
+            def _toggle_man(checked):
+                self.radio_man_1.setEnabled(checked)
+                self.radio_man_2.setEnabled(checked)
+                self.radio_man_all.setEnabled(checked)
+                if self.man_combo:
+                    self.man_combo.setEnabled(checked)
+
+            self.chk_manual.toggled.connect(_toggle_man)
+        else:
+            self.chk_manual.setChecked(False)
+            self.chk_manual.setEnabled(False)
+            self.chk_manual.setText("Adjuntar páginas del Manual de Usuario (Sin manuales asociados)")
+            doc_layout.addWidget(self.chk_manual)
+            self.man_combo = None
+            self.radio_man_1 = None
+            self.radio_man_2 = None
+            self.radio_man_all = None
+
+        layout.addWidget(doc_box)
+
+        # 5. Botones de acción
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch()
+
+        btn_cancel = QPushButton("Cancelar")
+        btn_cancel.clicked.connect(self.reject)
+
+        btn_export = QPushButton("Generar PDF")
+        btn_export.setStyleSheet(
+            "background-color: #ff5722; color: #ffffff; border: none; "
+            "font-weight: bold; padding: 6px 16px; border-radius: 6px;"
+        )
+        btn_export.setDefault(True)
+        btn_export.clicked.connect(self._on_export)
+
+        btn_layout.addWidget(btn_cancel)
+        btn_layout.addWidget(btn_export)
+        layout.addLayout(btn_layout)
+
+    def _on_export(self):
+        ds_path = None
+        if self.chk_datasheet.isChecked() and self.datasheets:
+            if self.ds_combo:
+                ds_path = self.ds_combo.currentData()
+            else:
+                ds_path = self.datasheets[0][1]
+
+        ds_pages = 1
+        if self.radio_ds_all and self.radio_ds_all.isChecked():
+            ds_pages = 'all'
+        elif self.radio_ds_2 and self.radio_ds_2.isChecked():
+            ds_pages = 2
+
+        man_path = None
+        if self.chk_manual.isChecked() and self.manuals:
+            if self.man_combo:
+                man_path = self.man_combo.currentData()
+            else:
+                man_path = self.manuals[0][1]
+
+        man_pages = 1
+        if self.radio_man_all and self.radio_man_all.isChecked():
+            man_pages = 'all'
+        elif self.radio_man_2 and self.radio_man_2.isChecked():
+            man_pages = 2
+
+        self.export_config = {
+            'page_format': self.format_combo.currentData(),
+            'include_specs': self.chk_specs.isChecked(),
+            'include_desc': self.chk_desc.isChecked(),
+            'include_checklist': self.chk_checklist.isChecked(),
+            'include_datasheet': self.chk_datasheet.isChecked() and bool(ds_path),
+            'datasheet_pages': ds_pages,
+            'datasheet_path': ds_path,
+            'include_manual': self.chk_manual.isChecked() and bool(man_path),
+            'manual_pages': man_pages,
+            'manual_path': man_path
+        }
+        self.accept()
+
+
+class ToolPDFExportDialog(QDialog):
+    """Diálogo de opciones para generar la ficha técnica en PDF de una herramienta de taller."""
+
+    def __init__(self, tool: dict, documents: list = None, agenda_path: str = None, parent=None):
+        super().__init__(parent)
+        self.tool = tool or {}
+        self.documents = documents or []
+        self.agenda_path = agenda_path
+        self.export_config = None
+
+        self.setWindowTitle("Exportar Ficha de Herramienta a PDF")
+        self.setMinimumWidth(480)
+        self._setup_ui()
+
+    def _setup_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setSpacing(14)
+
+        # 1. Cabecera informativa de la herramienta
+        t_name = self.tool.get('name', 'Herramienta')
+        t_brand = self.tool.get('brand', '')
+        t_model = self.tool.get('model', '')
+        t_type = self.tool.get('type', 'Taller')
+        t_status = self.tool.get('status', 'Excelente') or 'Excelente'
+
+        brand_model_str = f"{t_brand} {t_model}".strip() or "N/A"
+        info_box = QLabel(
+            f"Herramienta: <b style='color: #FFFFFF;'>{t_name}</b> ({brand_model_str})<br>"
+            f"<span style='color: #A0A5C0;'>Tipo: {t_type} | Estado: {t_status}</span>"
+        )
+        info_box.setStyleSheet(
+            "background: rgba(255, 255, 255, 0.06); color: #E0E0E0; font-size: 13px; "
+            "padding: 10px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1);"
+        )
+        layout.addWidget(info_box)
+
+        form = QFormLayout()
+        form.setSpacing(10)
+
+        # 2. Formato de página (por defecto Carta, después Oficio y A4)
+        self.format_combo = QComboBox()
+        self.format_combo.addItem("Carta (Letter - 215.9 x 279.4 mm)", "letter")
+        self.format_combo.addItem("Oficio (Legal - 215.9 x 355.6 mm)", "legal")
+        self.format_combo.addItem("A4 (210.0 x 297.0 mm)", "a4")
+        self.format_combo.setCurrentIndex(0)  # Carta por defecto
+        form.addRow("Formato de Página:", self.format_combo)
+        layout.addLayout(form)
+
+        # 3. Secciones del Documento
+        sec_box = QGroupBox("Secciones de la Ficha Técnica")
+        sec_box.setStyleSheet("QGroupBox { font-weight: bold; color: #f9e2af; margin-top: 6px; }")
+        sec_layout = QVBoxLayout(sec_box)
+        sec_layout.setSpacing(8)
+
+        chk_base = QCheckBox("Ficha Principal (Portada e Identificación General — Incluida al inicio)")
+        chk_base.setChecked(True)
+        chk_base.setEnabled(False)
+        sec_layout.addWidget(chk_base)
+
+        n_chk = len(self.tool.get('history', []))
+        lbl_chk = f"Incluir Historial de Chequeos y Mantenimientos ({n_chk} registrados)" if n_chk > 0 else "Incluir Historial de Chequeos y Mantenimientos (Sin registros)"
+        self.chk_history = QCheckBox(lbl_chk)
+        self.chk_history.setChecked(n_chk > 0)
+        sec_layout.addWidget(self.chk_history)
+
+        layout.addWidget(sec_box)
+
+        # 4. Documentación Adjunta (Manuales y Hojas Técnicas)
+        doc_box = QGroupBox("Documentación Adjunta (Manuales y Hojas Técnicas)")
+        doc_box.setStyleSheet("QGroupBox { font-weight: bold; color: #f9e2af; margin-top: 6px; }")
+        doc_layout = QVBoxLayout(doc_box)
+        doc_layout.setSpacing(10)
+
+        self.chk_doc = QCheckBox("Adjuntar páginas de la documentación técnica")
+        has_docs = len(self.documents) > 0
+        if has_docs:
+            self.chk_doc.setChecked(True)
+            doc_layout.addWidget(self.chk_doc)
+
+            if len(self.documents) > 1:
+                doc_sel_layout = QHBoxLayout()
+                doc_sel_layout.addWidget(QLabel("Archivo Documento:"))
+                self.doc_combo = QComboBox()
+                for name, path in self.documents:
+                    self.doc_combo.addItem(name, path)
+                doc_sel_layout.addWidget(self.doc_combo, 1)
+                doc_layout.addLayout(doc_sel_layout)
+            else:
+                self.doc_combo = None
+
+            pages_row = QHBoxLayout()
+            pages_row.setContentsMargins(20, 0, 0, 0)
+            self.radio_doc_1 = QRadioButton("Primera página (Pág. 1)")
+            self.radio_doc_2 = QRadioButton("Dos primeras páginas (Págs. 1 y 2)")
+            self.radio_doc_all = QRadioButton("Documento completo")
+            self.radio_doc_1.setChecked(True)
+
+            self.doc_page_group = QButtonGroup(self)
+            self.doc_page_group.addButton(self.radio_doc_1, 1)
+            self.doc_page_group.addButton(self.radio_doc_2, 2)
+            self.doc_page_group.addButton(self.radio_doc_all, 3)
+
+            pages_row.addWidget(self.radio_doc_1)
+            pages_row.addWidget(self.radio_doc_2)
+            pages_row.addWidget(self.radio_doc_all)
+            pages_row.addStretch()
+            doc_layout.addLayout(pages_row)
+
+            def _toggle_doc_options(checked):
+                self.radio_doc_1.setEnabled(checked)
+                self.radio_doc_2.setEnabled(checked)
+                self.radio_doc_all.setEnabled(checked)
+                if self.doc_combo:
+                    self.doc_combo.setEnabled(checked)
+
+            self.chk_doc.toggled.connect(_toggle_doc_options)
+        else:
+            self.chk_doc.setChecked(False)
+            self.chk_doc.setEnabled(False)
+            self.chk_doc.setText("Adjuntar páginas de documentación (Sin documentos asociados)")
+            doc_layout.addWidget(self.chk_doc)
+            self.doc_combo = None
+            self.radio_doc_1 = None
+            self.radio_doc_2 = None
+            self.radio_doc_all = None
+
+        layout.addWidget(doc_box)
+
+        # 5. Botones de acción
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch()
+
+        btn_cancel = QPushButton("Cancelar")
+        btn_cancel.clicked.connect(self.reject)
+
+        btn_export = QPushButton("Generar PDF")
+        btn_export.setStyleSheet(
+            "background-color: #ff5722; color: #ffffff; border: none; "
+            "font-weight: bold; padding: 6px 16px; border-radius: 6px;"
+        )
+        btn_export.setDefault(True)
+        btn_export.clicked.connect(self._on_export)
+
+        btn_layout.addWidget(btn_cancel)
+        btn_layout.addWidget(btn_export)
+        layout.addLayout(btn_layout)
+
+    def _on_export(self):
+        doc_path = None
+        if self.chk_doc.isChecked() and self.documents:
+            if self.doc_combo:
+                doc_path = self.doc_combo.currentData()
+            else:
+                doc_path = self.documents[0][1]
+
+        doc_pages = 1
+        if self.radio_doc_all and self.radio_doc_all.isChecked():
+            doc_pages = 'all'
+        elif self.radio_doc_2 and self.radio_doc_2.isChecked():
+            doc_pages = 2
+
+        self.export_config = {
+            'page_format': self.format_combo.currentData(),
+            'include_history': self.chk_history.isChecked(),
+            'include_document': self.chk_doc.isChecked() and bool(doc_path),
+            'document_pages': doc_pages,
+            'document_path': doc_path
+        }
+        self.accept()
+
+
+

@@ -41,6 +41,10 @@ class HandwritingCanvasWidget(QWidget):
         tb_layout.addWidget(QLabel("<b style='color:#333333; font-size:11px;'>Color:</b>"))
         
         self.color_combo = QComboBox()
+        self.color_combo.setStyleSheet("""
+            QComboBox { background-color: #ffffff; color: #111111; border: 1px solid #90A4AE; border-radius: 4px; padding: 2px 4px; }
+            QComboBox QAbstractItemView { background-color: #ffffff; color: #111111; selection-background-color: #90CAF9; }
+        """)
         self.colors = [
             ("Negro", "#111111"),
             ("Azul", "#1e88e5"),
@@ -56,6 +60,10 @@ class HandwritingCanvasWidget(QWidget):
 
         tb_layout.addWidget(QLabel("<b style='color:#333333; font-size:11px;'>Grosor:</b>"))
         self.width_combo = QComboBox()
+        self.width_combo.setStyleSheet("""
+            QComboBox { background-color: #ffffff; color: #111111; border: 1px solid #90A4AE; border-radius: 4px; padding: 2px 4px; }
+            QComboBox QAbstractItemView { background-color: #ffffff; color: #111111; selection-background-color: #90CAF9; }
+        """)
         self.width_combo.addItems(["Fino (2px)", "Medio (4px)", "Grueso (6px)", "Marcador (10px)"])
         self.width_combo.setCurrentIndex(1)
         self.width_combo.currentIndexChanged.connect(self._on_width_changed)
@@ -71,8 +79,9 @@ class HandwritingCanvasWidget(QWidget):
         main_layout.addWidget(toolbar)
 
         # Área del lienzo
+        # Usamos fondo transparente para que el paintEvent del padre (que dibuja la imagen) se vea a través del frame.
         self.canvas_frame = QFrame()
-        self.canvas_frame.setStyleSheet("QFrame { background-color: #FFFFFF; border: 2px dashed #B0A890; border-radius: 8px; }")
+        self.canvas_frame.setStyleSheet("QFrame { background-color: transparent; border: 2px dashed #B0A890; border-radius: 8px; }")
         c_layout = QVBoxLayout(self.canvas_frame)
         c_layout.setContentsMargins(0, 0, 0, 0)
         
@@ -93,24 +102,33 @@ class HandwritingCanvasWidget(QWidget):
         self.update()
         self.canvas_changed.emit()
 
+    def _map_to_image(self, pos: QPoint) -> QPoint:
+        """Mapea las coordenadas del widget (pantalla) a las coordenadas reales de la imagen."""
+        rect = self.canvas_frame.geometry()
+        if rect.width() == 0 or rect.height() == 0:
+            return QPoint(0, 0)
+        x = int(pos.x() * self.image.width() / rect.width())
+        y = int(pos.y() * self.image.height() / rect.height())
+        return QPoint(x, y)
+
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
             self.drawing = True
             pos = self.mapToGlobal(event.pos())
             canvas_pos = self.canvas_frame.mapFromGlobal(pos)
-            self.last_point = canvas_pos
+            self.last_point = self._map_to_image(canvas_pos)
 
     def mouseMoveEvent(self, event):
         if (event.buttons() & Qt.MouseButton.LeftButton) and self.drawing:
             pos = self.mapToGlobal(event.pos())
             canvas_pos = self.canvas_frame.mapFromGlobal(pos)
-            self._draw_line_to(canvas_pos)
+            self._draw_line_to(self._map_to_image(canvas_pos))
 
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton and self.drawing:
             pos = self.mapToGlobal(event.pos())
             canvas_pos = self.canvas_frame.mapFromGlobal(pos)
-            self._draw_line_to(canvas_pos)
+            self._draw_line_to(self._map_to_image(canvas_pos))
             self.drawing = False
 
     def _draw_line_to(self, end_point):

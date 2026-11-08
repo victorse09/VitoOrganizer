@@ -96,6 +96,7 @@ class RespaldosSidebar(QWidget):
 class RespaldosLeftView(QWidget):
     item_selected = pyqtSignal(dict)
     edit_item_requested = pyqtSignal(dict)
+    pagination_changed = pyqtSignal(int, int) # (current_page, total_pages)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -104,6 +105,9 @@ class RespaldosLeftView(QWidget):
         self.items = []
         self.search_query = ''
         self.sort_order = 'alpha_asc'
+        self.page = 1
+        self.total_pages = 1
+        self.items_per_page = 7
         self._setup_ui()
 
     def _setup_ui(self):
@@ -136,11 +140,35 @@ class RespaldosLeftView(QWidget):
         self.scroll.setWidget(self.scroll_content)
         layout.addWidget(self.scroll, 1)
 
-    def set_data(self, items: list, search_query: str = '', sort_order: str = 'alpha_asc'):
+    def set_data(self, items: list, search_query: str = '', sort_order: str = 'alpha_asc', page: int = 1):
         self.items = items
         self.search_query = search_query.lower().strip()
         self.sort_order = sort_order
+        self.page = max(1, page)
         self._refresh()
+
+    def get_total_pages(self) -> int:
+        return getattr(self, 'total_pages', 1)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._recalculate_items_per_page()
+
+    def _recalculate_items_per_page(self):
+        margins_y = 30  # content margins (top 15, bottom 15)
+        hdr_y = 44      # cabecera (34) + spacing (10)
+        available_y = self.height() - margins_y - hdr_y
+        if available_y <= 0:
+            return
+
+        # Altura de cada tarjeta fija: 54px + spacing de 6px = 60px
+        card_step = 60
+        new_items_per_page = max(1, available_y // card_step)
+
+        if not hasattr(self, 'items_per_page') or self.items_per_page != new_items_per_page:
+            self.items_per_page = new_items_per_page
+            self._refresh()
+            self.pagination_changed.emit(self.page, self.get_total_pages())
 
     def _refresh(self):
         while self.scroll_layout.count():
@@ -172,14 +200,24 @@ class RespaldosLeftView(QWidget):
         elif sort_order == 'num_desc':
             filtered.sort(key=lambda x: str(x.get('disk_number', '')).lower(), reverse=True)
 
-        if not filtered:
+        total_items = len(filtered)
+        items_per_page = getattr(self, 'items_per_page', 7)
+        self.total_pages = max(1, (total_items + items_per_page - 1) // items_per_page)
+        if self.page > self.total_pages:
+            self.page = self.total_pages
+
+        start_idx = (self.page - 1) * items_per_page
+        end_idx = start_idx + items_per_page
+        page_items = filtered[start_idx:end_idx]
+
+        if not page_items:
             lbl_empty = QLabel("No hay discos registrados.")
             lbl_empty.setStyleSheet("color: #666666; font-style: italic; padding: 20px;")
             lbl_empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
             self.scroll_layout.addWidget(lbl_empty)
         else:
             icons_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'resources', 'icons')
-            for item in filtered:
+            for item in page_items:
                 card = ClickableFrame()
                 card.setFixedHeight(54)
                 card.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -454,8 +492,11 @@ class RespaldosPlugin(PluginBase):
 
         self.left_view.item_selected.connect(self._on_item_selected)
         self.left_view.edit_item_requested.connect(self._on_edit_disk)
+        self.left_view.pagination_changed.connect(self._on_left_page_pagination_changed)
 
         self.right_view.scan_requested.connect(self._on_scan_disk)
+
+        self._current_page = 1
 
     def create_sidebar_widget(self) -> QWidget:
         return self.sidebar_widget
@@ -465,6 +506,21 @@ class RespaldosPlugin(PluginBase):
 
     def create_right_page(self) -> QWidget:
         return self.right_view
+
+    def get_total_pages(self) -> int:
+        return self.left_view.get_total_pages() if self.left_view else 1
+
+    def get_current_page(self) -> int:
+        return self._current_page
+
+    def go_to_page(self, page_num: int):
+        total = self.get_total_pages()
+        self._current_page = max(1, min(page_num, total))
+        self._refresh_ui()
+
+    def _on_left_page_pagination_changed(self, page: int, total: int):
+        self._current_page = page
+        self.page_changed.emit(page, total)
 
     def on_activate(self):
         super().on_activate()
@@ -497,16 +553,22 @@ class RespaldosPlugin(PluginBase):
         if self.sidebar_widget:
             self.sidebar_widget.set_sort_order(sort_order)
         if self.left_view:
-            self.left_view.set_data(self._data.get('discos', []), self._current_search, sort_order)
+            self.left_view.set_data(self._data.get('discos', []), self._current_search, sort_order, page=self._current_page)
+            total = self.left_view.get_total_pages()
+            if self._current_page > total:
+                self._current_page = total
+            self.page_changed.emit(self._current_page, total)
 
     def _on_sort_changed(self, order_str: str):
         if 'config' not in self._data: self._data['config'] = {}
         self._data['config']['sort_order'] = order_str
         self._is_modified = True
+        self._current_page = 1
         self._refresh_ui()
 
     def _on_search(self, text: str):
         self._current_search = text
+        self._current_page = 1
         self._refresh_ui()
 
     def _on_item_selected(self, item: dict):

@@ -125,47 +125,66 @@ QStatusBar::item {
 
 /* --- ScrollBar --- */
 QScrollBar:vertical {
-    background-color: #0c0d16;
-    width: 12px;
+    background: transparent;
+    width: 8px;
     margin: 0px;
-    border-radius: 6px;
+    border: none;
 }
 
 QScrollBar::handle:vertical {
-    background-color: #1e2035;
-    min-height: 20px;
-    border-radius: 6px;
-    margin: 2px;
+    background-color: rgba(130, 140, 160, 0.38);
+    min-height: 24px;
+    border-radius: 4px;
+    margin: 0px;
 }
 
 QScrollBar::handle:vertical:hover {
-    background-color: #ff5722;
+    background-color: rgba(110, 125, 150, 0.65);
 }
 
-QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+QScrollBar::handle:vertical:pressed {
+    background-color: rgba(90, 105, 130, 0.85);
+}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical,
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+    background: transparent;
     height: 0px;
+    border: none;
 }
 
 QScrollBar:horizontal {
-    background-color: #0c0d16;
-    height: 12px;
+    background: transparent;
+    height: 8px;
     margin: 0px;
-    border-radius: 6px;
+    border: none;
 }
 
 QScrollBar::handle:horizontal {
-    background-color: #1e2035;
-    min-width: 20px;
-    border-radius: 6px;
-    margin: 2px;
+    background-color: rgba(130, 140, 160, 0.38);
+    min-width: 24px;
+    border-radius: 4px;
+    margin: 0px;
 }
 
 QScrollBar::handle:horizontal:hover {
-    background-color: #ff5722;
+    background-color: rgba(110, 125, 150, 0.65);
 }
 
-QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+QScrollBar::handle:horizontal:pressed {
+    background-color: rgba(90, 105, 130, 0.85);
+}
+
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal,
+QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+    background: transparent;
     width: 0px;
+    border: none;
+}
+
+QScrollBar::corner, QAbstractScrollArea::corner {
+    background: transparent;
+    border: none;
 }
 
 /* --- Tree Widget --- */

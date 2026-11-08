@@ -20,6 +20,7 @@ class BodegaLeftView(QWidget):
     """Página izquierda: Lista consolidada de inventario (Componentes e Insumos)."""
     
     item_selected = pyqtSignal(dict, str) # (item, type: 'components'/'supplies')
+    pagination_changed = pyqtSignal(int, int) # (current_page, total_pages)
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -30,6 +31,8 @@ class BodegaLeftView(QWidget):
         self.current_view = "stock" # "stock", "saldos", "costos", "consolidado"
         self.search_query = ""
         self.filter_low_stock = False
+        self.page = 1
+        self.total_pages = 1
         self._setup_ui()
 
     def _setup_ui(self):
@@ -78,6 +81,7 @@ class BodegaLeftView(QWidget):
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.table.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.table.setStyleSheet("""
             QTableWidget {
                 background-color: rgba(255, 255, 255, 0.9);
@@ -115,38 +119,8 @@ class BodegaLeftView(QWidget):
         self.lbl_consolidated_report.setStyleSheet("color: #111; font-size: 13px; border: none; background: transparent;")
         df_layout.addWidget(self.lbl_consolidated_report)
 
-        # Tabla de elementos críticos en alerta
-        lbl_alert_title = QLabel("⚠️ Elementos Críticos (Bajo Stock Mínimo)")
-        lbl_alert_title.setStyleSheet("font-weight: bold; color: #D32F2F; font-size: 12px; border: none; background: transparent; margin-top: 10px;")
-        df_layout.addWidget(lbl_alert_title)
-
-        self.alert_table = QTableWidget()
-        self.alert_table.setColumnCount(4)
-        self.alert_table.setHorizontalHeaderLabels(["Tipo", "Nombre", "Stock", "Límite"])
-        self.alert_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self.alert_table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
-        self.alert_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.alert_table.verticalHeader().setVisible(False)
-        self.alert_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        self.alert_table.setColumnWidth(0, 90)   # Tipo
-        self.alert_table.setColumnWidth(2, 50)   # Stock
-        self.alert_table.setColumnWidth(3, 50)   # Límite
-        self.alert_table.setStyleSheet("""
-            QTableWidget {
-                background-color: white;
-                border: 1px solid #D32F2F;
-                border-radius: 4px;
-                color: #111111;
-            }
-            QHeaderView::section {
-                background-color: #FFEBEE !important;
-                color: #B71C1C !important;
-                font-weight: bold !important;
-                border: 1px solid #FFCDD2 !important;
-                padding: 4px;
-            }
-        """)
-        df_layout.addWidget(self.alert_table, 1)
+        # Espaciador para empujar el reporte hacia arriba si es corto
+        df_layout.addStretch()
 
         cw_layout.addWidget(self.dashboard_frame)
         self.stacked.addWidget(self.consolidated_widget)
@@ -176,6 +150,21 @@ class BodegaLeftView(QWidget):
         if item_id in getattr(self, 'items_by_id', {}):
             item_data, type_str = self.items_by_id[item_id]
             self.item_selected.emit(item_data, type_str)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._refresh()
+
+    def go_to_page(self, page_num: int):
+        if 1 <= page_num <= self.get_total_pages():
+            self.page = page_num
+            self._refresh()
+
+    def get_current_page(self) -> int:
+        return self.page
+
+    def get_total_pages(self) -> int:
+        return self.total_pages
 
     def _refresh(self):
         # Ordenar elementos antes de procesar
@@ -237,6 +226,7 @@ class BodegaLeftView(QWidget):
         settings = Settings.load()
         currency = getattr(settings.general, 'cost_currency', 'CLP')
 
+        filtered_items = []
         for item, type_str in self.items:
             name = item.get('name', '')
             stock = item.get('stock_quantity', 0)
@@ -249,6 +239,33 @@ class BodegaLeftView(QWidget):
             if self.search_query:
                 if self.search_query not in name.lower() and self.search_query not in type_str.lower():
                     continue
+            
+            filtered_items.append((item, type_str))
+
+        if not filtered_items:
+            self.total_pages = 1
+            self.pagination_changed.emit(self.page, self.total_pages)
+            return
+
+        margins_y = 110
+        row_height = 32
+        available_y = self.height() - margins_y
+        items_per_page = max(1, int(available_y // row_height))
+        
+        import math
+        self.total_pages = max(1, math.ceil(len(filtered_items) / items_per_page))
+        if self.page > self.total_pages:
+            self.page = self.total_pages
+            
+        start = (self.page - 1) * items_per_page
+        end = start + items_per_page
+        page_items = filtered_items[start:end]
+
+        for item, type_str in page_items:
+            name = item.get('name', '')
+            stock = item.get('stock_quantity', 0)
+            min_stock = item.get('min_stock_quantity', 0)
+            is_low = stock <= min_stock
 
             self.table.insertRow(row_idx)
             
@@ -307,6 +324,8 @@ class BodegaLeftView(QWidget):
 
             row_idx += 1
 
+        self.pagination_changed.emit(self.page, self.total_pages)
+
     def _build_consolidated_dashboard(self):
         from config.settings import Settings
         settings = Settings.load()
@@ -345,34 +364,27 @@ class BodegaLeftView(QWidget):
         txt += f"</table>"
         txt += f"<p style='margin:0; font-size: 11px;'><b>Alertas Activas:</b> Actualmente hay <span style='color: #D32F2F; font-weight: bold;'>{len(low_stock_items)}</span> elementos que requieren reposición urgente por estar bajo su límite mínimo de stock.</p>"
         
+        if low_stock_items:
+            txt += f"<h4 style='color: #D32F2F; margin-top: 15px; margin-bottom: 5px;'>⚠️ Elementos Críticos (Bajo Stock Mínimo)</h4>"
+            txt += f"<table style='width: 100%; border-collapse: collapse; font-size: 11px; border: 1px solid #D32F2F;'>"
+            txt += f"<tr style='background-color: #FFEBEE; color: #B71C1C;'><td style='padding: 6px; font-weight: bold; border-bottom: 1px solid #FFCDD2;'>Tipo</td><td style='padding: 6px; font-weight: bold; border-bottom: 1px solid #FFCDD2;'>Nombre</td><td style='padding: 6px; font-weight: bold; border-bottom: 1px solid #FFCDD2;'>Stock</td><td style='padding: 6px; font-weight: bold; border-bottom: 1px solid #FFCDD2;'>Límite</td></tr>"
+            
+            for item, type_str in low_stock_items:
+                type_display = "Componente" if type_str == 'components' else "Insumo"
+                name = item.get('name', '')
+                stock = item.get('stock_quantity', 0)
+                min_stock = item.get('min_stock_quantity', 0)
+                
+                txt += f"<tr>"
+                txt += f"<td style='padding: 4px 6px; border-bottom: 1px solid #FFCDD2; color: #D32F2F;'>{type_display}</td>"
+                txt += f"<td style='padding: 4px 6px; border-bottom: 1px solid #FFCDD2; color: #111111;'>{name}</td>"
+                txt += f"<td style='padding: 4px 6px; border-bottom: 1px solid #FFCDD2; color: #D32F2F; font-weight: bold;'>{stock}</td>"
+                txt += f"<td style='padding: 4px 6px; border-bottom: 1px solid #FFCDD2; color: #111111;'>{min_stock}</td>"
+                txt += f"</tr>"
+                
+            txt += f"</table>"
+            
         self.lbl_consolidated_report.setText(txt)
-
-        # Rellenar la tabla de elementos críticos
-        self.alert_table.setRowCount(0)
-        for idx, (item, type_str) in enumerate(low_stock_items):
-            self.alert_table.insertRow(idx)
-            
-            # Tipo
-            type_display = "Componente" if type_str == 'components' else "Insumo"
-            item_type = QTableWidgetItem(type_display)
-            item_type.setForeground(QColor("#D32F2F"))
-            self.alert_table.setItem(idx, 0, item_type)
-            
-            # Nombre
-            item_name = QTableWidgetItem(item.get('name', ''))
-            item_name.setForeground(QColor("#111111"))
-            self.alert_table.setItem(idx, 1, item_name)
-            
-            # Stock
-            item_stock = QTableWidgetItem(str(item.get('stock_quantity', 0)))
-            item_stock.setForeground(QColor("#D32F2F"))
-            item_stock.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
-            self.alert_table.setItem(idx, 2, item_stock)
-            
-            # Límite
-            item_min = QTableWidgetItem(str(item.get('min_stock_quantity', 0)))
-            item_min.setForeground(QColor("#111111"))
-            self.alert_table.setItem(idx, 3, item_min)
 
 
 class BodegaRightView(QWidget):
@@ -731,6 +743,16 @@ class BodegaPlugin(PluginBase):
         self._left_page.item_selected.connect(self._on_item_selected)
         self._right_page.movement_registered.connect(self._on_movement_registered)
         self._right_page.card_updated.connect(self._on_movement_registered)
+        self._left_page.pagination_changed.connect(self.page_changed.emit)
+
+    def go_to_page(self, page_num: int):
+        self._left_page.go_to_page(page_num)
+
+    def get_current_page(self) -> int:
+        return self._left_page.get_current_page()
+
+    def get_total_pages(self) -> int:
+        return self._left_page.get_total_pages()
 
     def get_name(self) -> str: return "Bodega"
     def get_id(self) -> str: return "bodega"

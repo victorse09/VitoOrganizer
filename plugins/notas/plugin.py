@@ -225,7 +225,7 @@ class NotesRightView(QWidget):
         hdr_layout.addWidget(self.lbl_note_title, 1)
 
         self.btn_props = QPushButton("Propiedades")
-        self.btn_props.setIcon(QIcon(os.path.join(icons_dir, 'settings.svg')))
+        self.btn_props.setIcon(QIcon(os.path.join(icons_dir, 'settings_dark.svg')))
         self.btn_props.setToolTip("Editar título, cuaderno o etiqueta de esta nota")
         self.btn_props.setStyleSheet("QPushButton { border: 1px solid #CCC; background: #F0F0F0; font-weight: bold; color: #333333; padding: 4px 8px; border-radius: 4px; } QPushButton:hover { background-color: #E0E0E0; }")
         self.btn_props.clicked.connect(lambda: self.edit_props_requested.emit(self.current_note) if self.current_note else None)
@@ -258,7 +258,7 @@ class NotesRightView(QWidget):
         self.btn_md_preview = QPushButton(" Vista Previa")
         for b in (self.btn_md_edit, self.btn_md_preview):
             b.setCheckable(True)
-            b.setStyleSheet("QPushButton { padding: 4px 10px; border-radius: 4px; background: rgba(255,255,255,0.6); font-weight: bold; } QPushButton:checked { background: #4682B4; color: white; }")
+            b.setStyleSheet("QPushButton { padding: 4px 10px; border-radius: 4px; background: rgba(255,255,255,0.6); color: #111111; font-weight: bold; } QPushButton:checked { background: #4682B4; color: white; }")
         self.btn_md_edit.setChecked(True)
         self.btn_md_edit.clicked.connect(lambda: self._switch_md_view(0))
         self.btn_md_preview.clicked.connect(lambda: self._switch_md_view(1))
@@ -299,7 +299,10 @@ class NotesRightView(QWidget):
         self.links_table.setColumnCount(4)
         self.links_table.setHorizontalHeaderLabels(["Categoría", "Título", "URL", "Acción"])
         self.links_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        self.links_table.setStyleSheet("QTableWidget { background-color: rgba(255,255,255,0.85); border: 1px solid #D0C070; border-radius: 6px; }")
+        self.links_table.setStyleSheet("""
+            QTableWidget { background-color: rgba(255,255,255,0.85); color: #111111; border: 1px solid #D0C070; border-radius: 6px; }
+            QTableWidget::item { color: #111111; }
+        """)
         links_layout.addWidget(self.links_table, 1)
         self.stack.addWidget(self.links_container)
 
@@ -653,7 +656,8 @@ class NotasPlugin(PluginBase):
 
     def _on_content_saved(self, note: dict):
         self._is_modified = True
-        self._update_views()
+        # We DO NOT call self._update_views() here because this is fired on every keystroke.
+        # Rebuilding the sidebar and note list on every keystroke causes a flickering ghost window.
 
     def _on_add_note(self):
         notebooks = self._data.get('notebooks', [])

@@ -124,11 +124,40 @@ class SettingsDialog(QDialog):
 
         # Tabs
         self._tabs = QTabWidget()
-        self._tabs.addTab(self._create_appearance_tab(), "Apariencia")
-        self._tabs.addTab(self._create_general_tab(), "General")
-        self._tabs.addTab(self._create_sections_tab(), "📋 Secciones y Pestañas")
-        self._tabs.addTab(self._create_backup_tab(), "Respaldos")
-        self._tabs.addTab(self._create_ai_tab(), "🤖 IA (Inteligencia Artificial)")
+        self._tabs.setStyleSheet("""
+            QTabWidget::pane {
+                border: 1px solid #45475a;
+                border-radius: 4px;
+                background-color: #1e1e2e;
+            }
+            QTabBar::tab {
+                background: #181825;
+                color: #a6adc8;
+                border: 1px solid #45475a;
+                border-bottom-color: #45475a;
+                border-top-left-radius: 6px;
+                border-top-right-radius: 6px;
+                min-width: 8ex;
+                padding: 6px 16px;
+                margin-right: 2px;
+            }
+            QTabBar::tab:selected {
+                background: #1e1e2e;
+                color: #cdd6f4;
+                border-bottom-color: #1e1e2e;
+                font-weight: bold;
+            }
+            QTabBar::tab:hover:!selected {
+                background: #313244;
+            }
+        """)
+
+        icons_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'resources', 'icons')
+        self._tabs.addTab(self._create_appearance_tab(), QIcon(os.path.join(icons_dir, 'image_file.svg')), "Apariencia")
+        self._tabs.addTab(self._create_general_tab(), QIcon(os.path.join(icons_dir, 'settings.svg')), "General")
+        self._tabs.addTab(self._create_sections_tab(), QIcon(os.path.join(icons_dir, 'library.svg')), "Secciones y Pestañas")
+        self._tabs.addTab(self._create_backup_tab(), QIcon(os.path.join(icons_dir, 'respaldos.svg')), "Respaldos")
+        self._tabs.addTab(self._create_ai_tab(), QIcon(os.path.join(icons_dir, 'rom.svg')), "Inteligencia Artificial")
         layout.addWidget(self._tabs)
 
         # Botones

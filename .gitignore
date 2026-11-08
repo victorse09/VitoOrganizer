@@ -5,6 +5,7 @@ __pycache__/
 
 # Distribución y empaquetado temporal
 build_packages_tmp/
+.flatpak-builder/
 dist/
 *.deb
 *.flatpak

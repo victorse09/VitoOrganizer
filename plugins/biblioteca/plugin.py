@@ -348,7 +348,7 @@ class BibRightView(QWidget):
 
         # Botones de Acción para Documentos Doki
         self.doki_actions_layout = QVBoxLayout()
-        self.btn_edit_doki = QPushButton(" ✏️ Editar Documento en Modo de Página Única")
+        self.btn_edit_doki = QPushButton(" Abrir en Editor Doki")
         self.btn_edit_doki.setIcon(get_themed_svg_icon(os.path.join(self.icons_dir, 'pencil.svg'), '#FFFFFF', 16))
         self.btn_edit_doki.setStyleSheet("QPushButton { background-color: #1565C0; color: white; font-weight: bold; padding: 8px 14px; border-radius: 4px; font-size: 12px; } QPushButton:hover { background-color: #0D47A1; }")
         self.btn_edit_doki.clicked.connect(lambda: self.open_doki_editor_requested.emit(self.current_item))
@@ -357,23 +357,51 @@ class BibRightView(QWidget):
         doki_export_row = QHBoxLayout()
         doki_export_row.setSpacing(6)
         
-        self.btn_exp_pdf = QPushButton("📄 PDF")
+        export_btn_style = """
+            QPushButton {
+                background-color: #2E3440;
+                color: #ECEFF4;
+                border: 1px solid #4C566A;
+                border-radius: 4px;
+                padding: 6px 10px;
+                font-weight: bold;
+                font-size: 11px;
+            }
+            QPushButton:hover {
+                background-color: #3B4252;
+                border-color: #81A1C1;
+                color: #8FBCBB;
+            }
+            QPushButton:pressed {
+                background-color: #434C5E;
+            }
+        """
+
+        self.btn_exp_pdf = QPushButton(" PDF")
+        self.btn_exp_pdf.setIcon(get_themed_svg_icon(os.path.join(self.icons_dir, 'document.svg'), '#D8DEE9', 16))
         self.btn_exp_pdf.setToolTip("Exportar a PDF")
+        self.btn_exp_pdf.setStyleSheet(export_btn_style)
         self.btn_exp_pdf.clicked.connect(lambda: self._export_current_doki('pdf'))
         doki_export_row.addWidget(self.btn_exp_pdf)
 
-        self.btn_exp_epub = QPushButton("📚 EPUB")
+        self.btn_exp_epub = QPushButton(" EPUB")
+        self.btn_exp_epub.setIcon(get_themed_svg_icon(os.path.join(self.icons_dir, 'manual.svg'), '#D8DEE9', 16))
         self.btn_exp_epub.setToolTip("Exportar a EPUB")
+        self.btn_exp_epub.setStyleSheet(export_btn_style)
         self.btn_exp_epub.clicked.connect(lambda: self._export_current_doki('epub'))
         doki_export_row.addWidget(self.btn_exp_epub)
 
-        self.btn_exp_odt = QPushButton("📑 OpenDocument (.odt)")
+        self.btn_exp_odt = QPushButton(" OpenDocument (.odt)")
+        self.btn_exp_odt.setIcon(get_themed_svg_icon(os.path.join(self.icons_dir, 'notes.svg'), '#D8DEE9', 16))
         self.btn_exp_odt.setToolTip("Exportar a OpenDocument (.odt)")
+        self.btn_exp_odt.setStyleSheet(export_btn_style)
         self.btn_exp_odt.clicked.connect(lambda: self._export_current_doki('odt'))
         doki_export_row.addWidget(self.btn_exp_odt)
 
-        self.btn_exp_xml = QPushButton("⚙️ XML")
+        self.btn_exp_xml = QPushButton(" XML")
+        self.btn_exp_xml.setIcon(get_themed_svg_icon(os.path.join(self.icons_dir, 'software.svg'), '#D8DEE9', 16))
         self.btn_exp_xml.setToolTip("Exportar a XML")
+        self.btn_exp_xml.setStyleSheet(export_btn_style)
         self.btn_exp_xml.clicked.connect(lambda: self._export_current_doki('xml'))
         doki_export_row.addWidget(self.btn_exp_xml)
 
@@ -382,13 +410,13 @@ class BibRightView(QWidget):
 
         # Botones de Acción de Lectura y Apertura Estándar
         self.standard_actions_layout = QHBoxLayout()
-        self.btn_open_viewer = QPushButton(" 📖 Leer en Visor Integrado")
+        self.btn_open_viewer = QPushButton(" Leer en Visor Integrado")
         self.btn_open_viewer.setIcon(QIcon(os.path.join(self.icons_dir, 'manual.svg')))
         self.btn_open_viewer.setStyleSheet("QPushButton { background-color: #1E88E5; color: white; font-weight: bold; padding: 6px 12px; border-radius: 4px; font-size: 11px; } QPushButton:hover { background-color: #1565C0; }")
         self.btn_open_viewer.clicked.connect(lambda: self.open_viewer_requested.emit(self.current_item, 1))
         self.standard_actions_layout.addWidget(self.btn_open_viewer)
 
-        self.btn_open_file = QPushButton(" 🖥️ Abrir en Sistema")
+        self.btn_open_file = QPushButton(" Abrir en Sistema")
         self.btn_open_file.setIcon(QIcon(os.path.join(self.icons_dir, 'open_folder.svg')))
         self.btn_open_file.setStyleSheet("QPushButton { background-color: #455A64; color: white; font-weight: bold; padding: 6px 12px; border-radius: 4px; font-size: 11px; } QPushButton:hover { background-color: #37474F; }")
         self.btn_open_file.clicked.connect(lambda: self.open_file_requested.emit(self.current_item))
@@ -485,10 +513,13 @@ class BibRightView(QWidget):
 
         is_doc = rel_path.lower().endswith(('.pdf', '.epub')) and not is_doki
         self.btn_open_viewer.setVisible(is_doc and os.path.exists(full_path))
-        self.btn_open_file.setVisible(os.path.exists(full_path))
+        self.btn_open_file.setVisible(not is_doki and os.path.exists(full_path))
 
-        self.card_bookmarks.setVisible(not is_doki)
-        self.card_articles.setVisible(not is_doki)
+        clean_type_str = item.get('type', '').replace("🖼️ ", "").replace("💻 ", "").replace("📄 ", "").replace("📖 ", "")
+        is_media_or_soft = clean_type_str in ('Imágenes', 'Software', 'Software / Firmware / Drivers')
+        
+        self.card_bookmarks.setVisible(not is_doki and not is_media_or_soft)
+        self.card_articles.setVisible(not is_doki and not is_media_or_soft)
 
         # Previsualización
         if is_doki and os.path.exists(full_path):
@@ -502,7 +533,6 @@ class BibRightView(QWidget):
                 self.doki_preview.setVisible(True)
         else:
             self.doki_preview.setVisible(False)
-            clean_type_str = item.get('type', '').replace("🖼️ ", "").replace("💻 ", "")
             is_img = clean_type_str == 'Imágenes' or rel_path.lower().endswith(IMAGE_EXTENSIONS)
             is_pdf = rel_path.lower().endswith('.pdf')
             
@@ -648,14 +678,11 @@ class BibliotecaSidebar(QWidget):
     search_changed = pyqtSignal(str)
     upload_clicked = pyqtSignal()
     settings_clicked = pyqtSignal()
+    chart_clicked = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setObjectName("sidebarWidget")
-        self.setStyleSheet("""
-            QWidget#sidebarWidget { background-color: #1e1e2e; border-right: 1px solid #313244; }
-            QLabel { color: #cdd6f4; }
-        """)
+        self.setStyleSheet("background: transparent;")
         self._setup_ui()
 
     def _setup_ui(self):
@@ -679,21 +706,31 @@ class BibliotecaSidebar(QWidget):
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("Buscar documentos...")
         self.search_input.addAction(QIcon(os.path.join(icons_dir, 'search.svg')), QLineEdit.ActionPosition.LeadingPosition)
-        self.search_input.setStyleSheet("QLineEdit { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; color: #ffffff; padding: 4px 8px; }")
+        self.search_input.setStyleSheet("QLineEdit { background: #FFFFFF; border: 1px solid #B0BEC5; border-radius: 4px; color: #333333; padding: 4px 8px; }")
         self.search_input.textChanged.connect(self.search_changed.emit)
         layout.addWidget(self.search_input)
 
-        # 3. Categorías de Documentación
+        # 3. Categorías de Documentación (Encabezado con icono SVG)
+        cat_header_layout = QHBoxLayout()
+        cat_header_layout.setSpacing(6)
+        cat_header_layout.setContentsMargins(2, 4, 2, 2)
+        lbl_filter_icon = QLabel()
+        lbl_filter_icon.setPixmap(get_themed_svg_icon(os.path.join(icons_dir, 'filter.svg'), '#20B2AA', 14).pixmap(14, 14))
+        lbl_filter_icon.setStyleSheet("background: transparent; border: none;")
+        cat_header_layout.addWidget(lbl_filter_icon)
+
         lbl_cat = QLabel("Filtro por Tipo")
-        lbl_cat.setStyleSheet("color: #a6adc8; font-weight: bold; font-size: 11px;")
-        layout.addWidget(lbl_cat)
+        lbl_cat.setStyleSheet("color: #a6adc8; font-weight: bold; font-size: 11px; background: transparent; border: none;")
+        cat_header_layout.addWidget(lbl_cat)
+        cat_header_layout.addStretch()
+        layout.addLayout(cat_header_layout)
 
         types_layout = QVBoxLayout()
         types_layout.setSpacing(2)
         self.type_group = QButtonGroup(self)
 
         t_list = [
-            ("Documentos Doki", " 📝 Documentos Propios (.doki)", "new_note.svg"),
+            ("Documentos Doki", " Documentos Propios (.doki)", "new_note.svg"),
             ("Imágenes", " Imágenes", "image_file.svg"),
             ("Manuales", " Manuales", "manual.svg"),
             ("Datasheets", " Datasheets", "datasheet.svg"),
@@ -709,9 +746,9 @@ class BibliotecaSidebar(QWidget):
             btn.setIcon(QIcon(os.path.join(icons_dir, ticon)))
             btn.setCheckable(True)
             btn.setStyleSheet("""
-                QPushButton { text-align: left; padding: 5px 8px; border: none; background: transparent; color: #cdd6f4; border-radius: 4px; font-size: 11px; }
-                QPushButton:checked { background-color: #313244; font-weight: bold; color: #20B2AA; }
-                QPushButton:hover:!checked { background-color: rgba(255, 255, 255, 0.15); }
+                QPushButton { text-align: left; padding: 6px 8px; border: 1px solid transparent; background: transparent; color: #cdd6f4; border-radius: 4px; font-size: 11px; }
+                QPushButton:checked { background-color: rgba(32, 178, 170, 0.22); border: 1px solid #20B2AA; font-weight: bold; color: #ffffff; }
+                QPushButton:hover:!checked { background-color: rgba(255, 255, 255, 0.12); }
             """)
             btn.clicked.connect(lambda checked, t=tid: self.type_changed.emit(t))
             self.type_group.addButton(btn, i)
@@ -721,10 +758,13 @@ class BibliotecaSidebar(QWidget):
 
         layout.addStretch()
 
-        # 4. Botón de engranaje inferior izquierdo
+        # 4. Botones inferiores (configuración y gráfico de contenido)
         bottom_layout = QHBoxLayout()
+        bottom_layout.setContentsMargins(0, 0, 0, 0)
+        bottom_layout.setSpacing(4)
+
         self.btn_settings = QPushButton()
-        self.btn_settings.setIcon(QIcon(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'resources', 'icons', 'settings.svg')))
+        self.btn_settings.setIcon(QIcon(os.path.join(icons_dir, 'settings.svg')))
         self.btn_settings.setFixedSize(32, 32)
         self.btn_settings.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_settings.setToolTip("Configurar Biblioteca")
@@ -734,6 +774,22 @@ class BibliotecaSidebar(QWidget):
         """)
         self.btn_settings.clicked.connect(self.settings_clicked.emit)
         bottom_layout.addWidget(self.btn_settings, alignment=Qt.AlignmentFlag.AlignLeft)
+
+        self.btn_chart = QPushButton()
+        icon_chart = get_themed_svg_icon(os.path.join(icons_dir, 'chart.svg'), '#E0E0E0', 18)
+        if icon_chart.isNull():
+            icon_chart = QIcon(os.path.join(icons_dir, 'chart.svg'))
+        self.btn_chart.setIcon(icon_chart)
+        self.btn_chart.setFixedSize(32, 32)
+        self.btn_chart.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_chart.setToolTip("Ver Gráfico de Contenido")
+        self.btn_chart.setStyleSheet("""
+            QPushButton { border: none; background: transparent; border-radius: 4px; }
+            QPushButton:hover { background-color: rgba(255, 255, 255, 0.15); }
+        """)
+        self.btn_chart.clicked.connect(self.chart_clicked.emit)
+        bottom_layout.addWidget(self.btn_chart, alignment=Qt.AlignmentFlag.AlignLeft)
+
         bottom_layout.addStretch()
         layout.addLayout(bottom_layout)
 
@@ -763,6 +819,7 @@ class BibliotecaPlugin(PluginBase):
         self._sidebar.search_changed.connect(self._on_search_changed)
         self._sidebar.upload_clicked.connect(self._on_upload_document)
         self._sidebar.settings_clicked.connect(self._on_show_settings)
+        self._sidebar.chart_clicked.connect(self._on_show_chart)
 
         # Pages
         self._left_page = BibLeftView()
@@ -1112,6 +1169,69 @@ class BibliotecaPlugin(PluginBase):
             self._update_views()
             if self.agenda_path:
                 self.save_data(self.agenda_path)
+
+    def _on_show_chart(self):
+        if not self.agenda_path or not os.path.exists(self.agenda_path):
+            return
+
+        self._ensure_library_folders()
+        bib_dir = os.path.join(self.agenda_path, 'biblioteca')
+        if not os.path.exists(bib_dir):
+            return
+
+        agenda_name = os.path.basename(self.agenda_path) or "Agenda"
+
+        root_items = []
+        total_size = 0
+        total_files = 0
+        total_folders = 0
+
+        try:
+            for entry in os.scandir(bib_dir):
+                size = 0
+                is_dir = False
+                try:
+                    if entry.is_dir(follow_symlinks=False):
+                        is_dir = True
+                        total_folders += 1
+                        for root, dirs, files in os.walk(entry.path):
+                            total_folders += len(dirs)
+                            total_files += len(files)
+                            for f in files:
+                                try:
+                                    size += os.path.getsize(os.path.join(root, f))
+                                except (OSError, PermissionError):
+                                    pass
+                    elif entry.is_file(follow_symlinks=False):
+                        total_files += 1
+                        size = entry.stat().st_size
+
+                    total_size += size
+                    root_items.append({'name': entry.name, 'size': size, 'is_dir': is_dir})
+                except (OSError, PermissionError):
+                    pass
+        except (OSError, PermissionError):
+            pass
+
+        root_items.sort(key=lambda x: x['size'], reverse=True)
+
+        item = {
+            'name': f"Biblioteca ({agenda_name})",
+            'storage_stats': {
+                'total_bytes': total_size,
+                'used_bytes': total_size,
+                'free_bytes': 0,
+                'total_files': total_files,
+                'total_folders': total_folders,
+                'root_items': root_items,
+                'scanned_path': bib_dir,
+                'include_files': True
+            }
+        }
+
+        from plugins.respaldos.dialogs import DiskUsageChartDialog
+        dlg = DiskUsageChartDialog(self._sidebar, item=item)
+        dlg.exec()
 
     # --- Papelera ---
     def move_to_trash(self, item: dict): self._trash.append(item)

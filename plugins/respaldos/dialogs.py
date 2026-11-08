@@ -287,7 +287,7 @@ class DiskUsageChartDialog(QDialog):
         self.resize(700, 460)
         self.setStyleSheet("""
             QDialog { background-color: #1e1e2e; }
-            QLabel { color: #cdd6f4; font-weight: bold; }
+            QLabel { background: transparent; border: none; color: #cdd6f4; font-weight: bold; }
             QTableWidget { background-color: #313244; color: #cdd6f4; border: 1px solid #45475a; border-radius: 4px; gridline-color: #45475a; }
             QHeaderView::section { background-color: #181825; color: #cdd6f4; font-weight: bold; padding: 4px; border: 1px solid #45475a; }
             QPushButton { background-color: #89b4fa; color: #11111b; padding: 6px 16px; border-radius: 4px; font-weight: bold; }
@@ -313,7 +313,7 @@ class DiskUsageChartDialog(QDialog):
         disk_num = self.item.get('disk_number', '')
         prefix = f"[{disk_num}] " if disk_num else ""
         lbl_title = QLabel(f"Resumen de Almacenamiento: {prefix}{self.item.get('name')}")
-        lbl_title.setStyleSheet("font-size: 15px; color: #89b4fa;")
+        lbl_title.setStyleSheet("font-size: 15px; color: #89b4fa; background: transparent; border: none;")
         layout.addWidget(lbl_title)
 
         # Preparar sectores
@@ -427,7 +427,7 @@ class DiskUsageChartDialog(QDialog):
             lbl_stats = QLabel(f"<b>Capacidad Total:</b> {format_size(total_b)} | <b>Usado:</b> {format_size(used_b)} ({pct_used:.1f}%) | <b>Libre:</b> {format_size(free_b)}{files_str}")
         else:
             lbl_stats = QLabel(f"<b>Tamaño Total:</b> {format_size(total_b)}{files_str}")
-        lbl_stats.setStyleSheet("color: #a6adc8; font-size: 12px;")
+        lbl_stats.setStyleSheet("color: #a6adc8; font-size: 12px; background: transparent; border: none;")
         bottom_layout.addWidget(lbl_stats)
 
         bottom_layout.addStretch()

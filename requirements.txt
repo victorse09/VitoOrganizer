@@ -1,2 +1,4 @@
 PyQt6>=6.6.0
 fpdf2
+PyMuPDF
+Pillow

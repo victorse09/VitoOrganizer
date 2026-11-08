@@ -375,6 +375,33 @@ class CategoryManagerDialog(QDialog):
         layout.setContentsMargins(20, 20, 20, 20)
 
         self.tab_widget = QTabWidget()
+        self.tab_widget.setStyleSheet("""
+            QTabWidget::pane {
+                border: 1px solid #45475a;
+                border-radius: 4px;
+                background-color: #1e1e2e;
+            }
+            QTabBar::tab {
+                background: #181825;
+                color: #a6adc8;
+                border: 1px solid #45475a;
+                border-bottom-color: #45475a;
+                border-top-left-radius: 6px;
+                border-top-right-radius: 6px;
+                min-width: 8ex;
+                padding: 6px 16px;
+                margin-right: 2px;
+            }
+            QTabBar::tab:selected {
+                background: #1e1e2e;
+                color: #cdd6f4;
+                border-bottom-color: #1e1e2e;
+                font-weight: bold;
+            }
+            QTabBar::tab:hover:!selected {
+                background: #313244;
+            }
+        """)
 
         # Expense tab
         self.expense_tab = QWidget()
@@ -392,7 +419,8 @@ class CategoryManagerDialog(QDialog):
         exp_btn_layout.addWidget(self.btn_edit_expense)
         exp_btn_layout.addWidget(self.btn_del_expense)
         exp_layout.addLayout(exp_btn_layout)
-        self.tab_widget.addTab(self.expense_tab, 'Gastos')
+        icons_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'resources', 'icons')
+        self.tab_widget.addTab(self.expense_tab, QIcon(os.path.join(icons_dir, 'down.svg')), 'Gastos')
 
         # Income tab
         self.income_tab = QWidget()
@@ -410,7 +438,7 @@ class CategoryManagerDialog(QDialog):
         inc_btn_layout.addWidget(self.btn_edit_income)
         inc_btn_layout.addWidget(self.btn_del_income)
         inc_layout.addLayout(inc_btn_layout)
-        self.tab_widget.addTab(self.income_tab, 'Ingresos')
+        self.tab_widget.addTab(self.income_tab, QIcon(os.path.join(icons_dir, 'up.svg')), 'Ingresos')
 
         layout.addWidget(self.tab_widget)
 

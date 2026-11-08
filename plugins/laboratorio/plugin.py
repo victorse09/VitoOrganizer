@@ -23,7 +23,13 @@ from plugins.laboratorio.dialogs import (
     ComponentDialog, InstrumentDialog, ToolDialog, SupplyDialog, CalibratorDialog,
     CalibrationLogDialog, LabSettingsDialog, CheckListManagerDialog, 
     CheckListEventDialog, CheckListViewDialog, AnalysisDialog, CalculationDialog,
-    ProjectDialog, ProjectCalculationDialog
+    ProjectDialog, ProjectCalculationDialog, ComponentPDFExportDialog,
+    InstrumentPDFExportDialog, ToolPDFExportDialog
+)
+from plugins.laboratorio.pdf_export import (
+    generate_component_pdf, get_component_datasheets_and_docs,
+    generate_instrument_pdf, get_instrument_documents,
+    generate_tool_pdf, get_tool_documents_and_datasheets
 )
 from plugins.laboratorio.analysis_editor import CalculationEditorWidget
 from plugins.laboratorio.project_editors import (
@@ -459,6 +465,7 @@ class LabRightView(QWidget):
     open_single_page_requested = pyqtSignal(dict, dict) # calculation, item_analysis
     open_single_page_right_requested = pyqtSignal(dict, str) # item, module_type
     open_instrument_records_requested = pyqtSignal(dict) # item_instrument
+    item_loaded = pyqtSignal(object, str) # item, module_type
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -503,7 +510,7 @@ class LabRightView(QWidget):
         hdr_layout.addWidget(self.btn_records)
 
         self.btn_toggle_view = QPushButton("Movimientos")
-        self.btn_toggle_view.setIcon(QIcon(os.path.join(icons_dir, 'history.svg')))
+        self.btn_toggle_view.setIcon(get_themed_svg_icon(os.path.join(icons_dir, 'history.svg'), color_hex="#333333", size=16))
         self.btn_toggle_view.setToolTip("Ver historial de ingresos y egresos de stock")
         self.btn_toggle_view.setStyleSheet("QPushButton { border: 1px solid #CCC; background: #F0F0F0; font-weight: bold; color: #333333; padding: 4px 8px; border-radius: 4px; font-size: 11px; } QPushButton:hover { background-color: #E0E0E0; }")
         self.btn_toggle_view.clicked.connect(self._toggle_movements_view)
@@ -939,12 +946,12 @@ class LabRightView(QWidget):
         if self.info_stack.currentIndex() == 0:
             self.info_stack.setCurrentIndex(1)
             self.btn_toggle_view.setText("Ver Ficha")
-            self.btn_toggle_view.setIcon(QIcon(os.path.join(icons_dir, 'document.svg')))
+            self.btn_toggle_view.setIcon(get_themed_svg_icon(os.path.join(icons_dir, 'document.svg'), color_hex="#333333", size=16))
             self._refresh_movements_table()
         else:
             self.info_stack.setCurrentIndex(0)
             self.btn_toggle_view.setText("Movimientos")
-            self.btn_toggle_view.setIcon(QIcon(os.path.join(icons_dir, 'history.svg')))
+            self.btn_toggle_view.setIcon(get_themed_svg_icon(os.path.join(icons_dir, 'history.svg'), color_hex="#333333", size=16))
 
     def _refresh_movements_table(self):
         self.mv_table.setRowCount(0)
@@ -982,6 +989,8 @@ class LabRightView(QWidget):
         if agenda_path: self.agenda_path = agenda_path
         cur_agenda = getattr(self, 'agenda_path', None)
 
+        self.item_loaded.emit(item, module_type)
+
         icons_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'resources', 'icons')
 
         if not item:
@@ -995,7 +1004,7 @@ class LabRightView(QWidget):
         self.stack.setCurrentIndex(1)
         self.info_stack.setCurrentIndex(0)
         self.btn_toggle_view.setText("Movimientos")
-        self.btn_toggle_view.setIcon(QIcon(os.path.join(icons_dir, 'history.svg')))
+        self.btn_toggle_view.setIcon(get_themed_svg_icon(os.path.join(icons_dir, 'history.svg'), color_hex="#333333", size=16))
         self.btn_toggle_view.setVisible(module_type in ('components', 'supplies'))
         self.btn_records.setVisible(module_type == 'instruments')
         
@@ -2111,6 +2120,7 @@ class LaboratorioPlugin(PluginBase):
         self._right_page.instrument_records_container.single_page_requested.connect(self._on_toggle_specs_single_page)
         self._right_page.instrument_records_container.open_structure_editor_requested.connect(self._on_open_structure_editor)
         self._right_page.instrument_records_container.open_guide_runner_requested.connect(self._on_open_guide_runner)
+        self._right_page.item_loaded.connect(lambda it, mt: self.pdf_export_state_changed.emit(self.supports_pdf_export()))
 
     def get_total_pages(self) -> int:
         return self._left_page.get_total_pages()
@@ -2442,6 +2452,7 @@ class LaboratorioPlugin(PluginBase):
         self._right_page.instrument_records_container.set_data(item, self.agenda_path, self._data.get('lists', {}))
         self._right_page.instrument_records_container.show_section('ficha')
         self._right_page.stack.setCurrentIndex(2)
+        self.pdf_export_state_changed.emit(self.supports_pdf_export())
 
     def _on_close_instrument_records(self):
         self._left_page.hdr_frame.setVisible(True)
@@ -2452,6 +2463,7 @@ class LaboratorioPlugin(PluginBase):
         if self._right_page.current_item:
             self._right_page.set_item(self._right_page.current_item, self.active_module, getattr(self, 'agenda_path', None))
         self._update_views()
+        self.pdf_export_state_changed.emit(self.supports_pdf_export())
 
     def _on_instrument_section_changed(self, section_id: str):
         self._right_page.instrument_records_container.show_section(section_id)
@@ -2608,11 +2620,249 @@ class LaboratorioPlugin(PluginBase):
     def create_left_page(self) -> QWidget: return self._left_page
     def create_right_page(self) -> QWidget: return self._right_page
 
+    def supports_pdf_export(self) -> bool:
+        """Habilita la exportación a PDF si estamos en Componentes, Instrumentos o Herramientas y hay uno seleccionado en la ficha."""
+        if getattr(self, '_right_page', None) is None:
+            return False
+
+        active = getattr(self, 'active_module', '')
+        if active == 'components':
+            return self._right_page.current_item is not None
+        elif active == 'instruments':
+            if self._right_page.current_item is not None:
+                return True
+            container = getattr(self._right_page, 'instrument_records_container', None)
+            if container and getattr(container, 'item', None) is not None:
+                return True
+        elif active == 'tools':
+            return self._right_page.current_item is not None
+        return False
+
+    def set_correlativos_manager(self, manager):
+        self.correlativos_manager = manager
+
+    def export_pdf(self, parent_widget=None):
+        if not self.supports_pdf_export():
+            return
+
+        active = getattr(self, 'active_module', '')
+        agenda_p = getattr(self, 'agenda_path', None)
+        if not agenda_p:
+            agenda_p = self.get_agenda_path()
+
+        if active == 'components':
+            component = self._right_page.current_item
+            if not component:
+                return
+
+            # Obtener datasheets asociados al componente en Biblioteca
+            all_docs = get_component_datasheets_and_docs(component, agenda_p)
+            pdf_datasheets = [(name, path) for name, dtype, path in all_docs if path.lower().endswith('.pdf')]
+
+            dlg = ComponentPDFExportDialog(component, pdf_datasheets, parent_widget)
+            if not dlg.exec():
+                return
+
+            config = dlg.export_config or {}
+
+            # Seleccionar ruta para guardar el PDF
+            clean_name = re.sub(r'[^a-zA-Z0-9_-]', '_', component.get('name', 'Componente')).strip()
+            def_name = f"Ficha_Componente_{clean_name}.pdf"
+            filepath, _ = QFileDialog.getSaveFileName(
+                parent_widget,
+                "Guardar Ficha Técnica en PDF",
+                def_name,
+                "Archivos PDF (*.pdf)"
+            )
+
+            if not filepath:
+                return
+
+            if not filepath.lower().endswith('.pdf'):
+                filepath += '.pdf'
+
+            # Obtener gestor de correlativos
+            manager = getattr(self, 'correlativos_manager', None)
+            if not manager and agenda_p:
+                from core.correlativos_manager import CorrelativosManager
+                manager = CorrelativosManager(agenda_p)
+                self.correlativos_manager = manager
+
+            serial_str = "INFO0000000"
+            key = "GLOBAL"
+            count = 1
+
+            if manager:
+                key, count, serial_str = manager.get_next_serial_info("Información")
+
+            try:
+                generate_component_pdf(
+                    filepath,
+                    component,
+                    config,
+                    serial_str,
+                    agenda_p
+                )
+
+                if manager:
+                    manager.commit_serial("Información", key, count)
+
+                QMessageBox.information(
+                    parent_widget,
+                    "PDF Generado Exitosamente",
+                    f"La Ficha Técnica del componente fue guardada en:\n{filepath}\n\nCorrelativo asignado: {serial_str}"
+                )
+            except Exception as e:
+                QMessageBox.critical(
+                    parent_widget,
+                    "Error al Generar PDF",
+                    f"Ocurrió un error al crear el archivo PDF:\n{str(e)}"
+                )
+
+        elif active == 'instruments':
+            instrument = self._right_page.current_item
+            if not instrument:
+                container = getattr(self._right_page, 'instrument_records_container', None)
+                if container:
+                    instrument = container.item
+            if not instrument:
+                return
+
+            docs_dict = get_instrument_documents(instrument, agenda_p)
+            datasheets = docs_dict.get('datasheets', [])
+            manuals = docs_dict.get('manuals', [])
+
+            dlg = InstrumentPDFExportDialog(instrument, datasheets, manuals, agenda_p, parent_widget)
+            if not dlg.exec():
+                return
+
+            config = dlg.export_config or {}
+
+            clean_name = re.sub(r'[^a-zA-Z0-9_-]', '_', instrument.get('name', 'Instrumento')).strip()
+            def_name = f"Ficha_Instrumento_{clean_name}.pdf"
+            filepath, _ = QFileDialog.getSaveFileName(
+                parent_widget,
+                "Guardar Ficha Técnica de Instrumento en PDF",
+                def_name,
+                "Archivos PDF (*.pdf)"
+            )
+
+            if not filepath:
+                return
+
+            if not filepath.lower().endswith('.pdf'):
+                filepath += '.pdf'
+
+            # Obtener gestor de correlativos
+            manager = getattr(self, 'correlativos_manager', None)
+            if not manager and agenda_p:
+                from core.correlativos_manager import CorrelativosManager
+                manager = CorrelativosManager(agenda_p)
+                self.correlativos_manager = manager
+
+            serial_str = "INFO0000000"
+            key = "GLOBAL"
+            count = 1
+
+            if manager:
+                key, count, serial_str = manager.get_next_serial_info("Información")
+
+            try:
+                generate_instrument_pdf(
+                    filepath,
+                    instrument,
+                    config,
+                    serial_str,
+                    agenda_p
+                )
+
+                if manager:
+                    manager.commit_serial("Información", key, count)
+
+                QMessageBox.information(
+                    parent_widget,
+                    "PDF Generado Exitosamente",
+                    f"La Ficha Técnica del instrumento fue guardada en:\n{filepath}\n\nCorrelativo asignado: {serial_str}"
+                )
+            except Exception as e:
+                QMessageBox.critical(
+                    parent_widget,
+                    "Error al Generar PDF",
+                    f"Ocurrió un error al crear el archivo PDF:\n{str(e)}"
+                )
+
+        elif active == 'tools':
+            tool = self._right_page.current_item
+            if not tool:
+                return
+
+            documents = get_tool_documents_and_datasheets(tool, agenda_p)
+
+            dlg = ToolPDFExportDialog(tool, documents, agenda_p, parent_widget)
+            if not dlg.exec():
+                return
+
+            config = dlg.export_config or {}
+
+            clean_name = re.sub(r'[^a-zA-Z0-9_-]', '_', tool.get('name', 'Herramienta')).strip()
+            def_name = f"Ficha_Herramienta_{clean_name}.pdf"
+            filepath, _ = QFileDialog.getSaveFileName(
+                parent_widget,
+                "Guardar Ficha Técnica de Herramienta en PDF",
+                def_name,
+                "Archivos PDF (*.pdf)"
+            )
+
+            if not filepath:
+                return
+
+            if not filepath.lower().endswith('.pdf'):
+                filepath += '.pdf'
+
+            # Obtener gestor de correlativos
+            manager = getattr(self, 'correlativos_manager', None)
+            if not manager and agenda_p:
+                from core.correlativos_manager import CorrelativosManager
+                manager = CorrelativosManager(agenda_p)
+                self.correlativos_manager = manager
+
+            serial_str = "INFO0000000"
+            key = "GLOBAL"
+            count = 1
+
+            if manager:
+                key, count, serial_str = manager.get_next_serial_info("Información")
+
+            try:
+                generate_tool_pdf(
+                    filepath,
+                    tool,
+                    config,
+                    serial_str,
+                    agenda_p
+                )
+
+                if manager:
+                    manager.commit_serial("Información", key, count)
+
+                QMessageBox.information(
+                    parent_widget,
+                    "PDF Generado Exitosamente",
+                    f"La Ficha Técnica de la herramienta fue guardada en:\n{filepath}\n\nCorrelativo asignado: {serial_str}"
+                )
+            except Exception as e:
+                QMessageBox.critical(
+                    parent_widget,
+                    "Error al Generar PDF",
+                    f"Ocurrió un error al crear el archivo PDF:\n{str(e)}"
+                )
+
     def on_activate(self):
         super().on_activate()
         if getattr(self, 'agenda_path', None):
             self.load_data(self.agenda_path)
         self._update_views()
+        self.pdf_export_state_changed.emit(self.supports_pdf_export())
 
     def load_data(self, agenda_path: str):
         self.agenda_path = agenda_path
